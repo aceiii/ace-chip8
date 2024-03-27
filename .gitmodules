@@ -10,3 +10,9 @@
 [submodule "external/expected"]
 	path = external/expected
 	url = https://github.com/TartanLlama/expected.git
+[submodule "external/raylib"]
+	path = external/raylib
+	url = https://github.com/raysan5/raylib.git
+[submodule "external/rlImGui"]
+	path = external/rlImGui
+	url = https://github.com/raylib-extras/rlImGui.git
