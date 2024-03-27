@@ -1,5 +1,7 @@
 #include <spdlog/spdlog.h>
 #include <raylib.h>
+#include <rlImGui.h>
+#include <imgui.h>
 
 auto main() -> int {
     spdlog::info("Hello, world!!!");
@@ -12,12 +14,22 @@ auto main() -> int {
 
     SetTargetFPS(60);
 
+    rlImGuiSetup(true);
+
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
+
+        rlImGuiBegin();
+        bool open = true;
+        ImGui::ShowDemoWindow(&open);
+        rlImGuiEnd();
+
         DrawFPS(10, 10);
         EndDrawing();
     }
+
+    rlImGuiShutdown();
 
     CloseWindow();
 
