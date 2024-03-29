@@ -4,3 +4,4 @@ build/
 dist/
 main
 imgui.ini
+imgui_log.txt
