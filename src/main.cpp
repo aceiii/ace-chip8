@@ -1,37 +1,23 @@
+#include "interpreter.h"
+#include "interface.h"
+
 #include <spdlog/spdlog.h>
-#include <raylib.h>
-#include <rlImGui.h>
-#include <imgui.h>
 
 auto main() -> int {
     spdlog::info("Hello, world!!!");
 
-    int width = 800;
-    int height = 600;
+    Interpreter interpreter;
+    Interface interface;
 
-    InitWindow(width, height, "CHIP-8");
-    SetExitKey(KEY_ESCAPE);
+    interpreter.initialize();
+    interface.initialize();
 
-    SetTargetFPS(60);
-
-    rlImGuiSetup(true);
-
-    while (!WindowShouldClose()) {
-        BeginDrawing();
-        ClearBackground(BLACK);
-
-        rlImGuiBegin();
-        bool open = true;
-        ImGui::ShowDemoWindow(&open);
-        rlImGuiEnd();
-
-        DrawFPS(10, 10);
-        EndDrawing();
+    while (true) {
+        interpreter.update();
+        if (interface.update() {
+            break;
+        }
     }
-
-    rlImGuiShutdown();
-
-    CloseWindow();
 
     return 0;
 }
