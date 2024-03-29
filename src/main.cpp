@@ -40,7 +40,7 @@ auto main(int argc, char* argv[]) -> int {
     }
 
     Interpreter interpreter;
-    Interface interface;
+    Interface interface(&interpreter);
 
     interpreter.initialize();
     interface.initialize();
@@ -51,6 +51,9 @@ auto main(int argc, char* argv[]) -> int {
             break;
         }
     }
+
+    interface.cleanup();
+    interpreter.cleanup();
 
     return 0;
 }
