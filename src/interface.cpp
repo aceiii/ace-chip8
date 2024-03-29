@@ -66,8 +66,6 @@ void Interface::initialize() {
 bool Interface::update() {
     play_sound = regs->st > 0;
 
-    // mouseDown = IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
-
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
