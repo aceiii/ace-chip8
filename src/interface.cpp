@@ -24,7 +24,7 @@ float square(float val) {
     return 0;
 }
 
-Interface::Interface(Interpreter* interpreter) : interpreter(interpreter) {}
+Interface::Interface(std::shared_ptr<registers> regs) : regs(regs) {}
 
 void Interface::initialize() {
     NFD_Init();
@@ -64,8 +64,7 @@ void Interface::initialize() {
 }
 
 bool Interface::update() {
-    registers* regs = interpreter->get_registers();
-    play_sound = regs->sound > 0;
+    play_sound = regs->st > 0;
 
     // mouseDown = IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
 
@@ -78,8 +77,21 @@ bool Interface::update() {
 
     ImGui::Begin("CHIP-8");
     {
+        ImGui::Text("ST: %d", regs->st);
+
+        static float volume = GetMasterVolume() * 100.0f;
+        if (ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f")) {
+            spdlog::debug("Set volume: {}", volume);
+            SetMasterVolume(volume / 100.0f);
+        }
+
         if (ImGui::Button("Play Sound")) {
-            regs->sound = 255;
+            regs->st = 255;
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Stop Sound")) {
+            regs->st = 0;
         }
 
         if (ImGui::Button("Open file")) {

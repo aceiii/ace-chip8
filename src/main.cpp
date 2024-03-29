@@ -1,3 +1,4 @@
+#include "registers.h"
 #include "interpreter.h"
 #include "interface.h"
 
@@ -39,8 +40,10 @@ auto main(int argc, char* argv[]) -> int {
         return 1;
     }
 
-    Interpreter interpreter;
-    Interface interface(&interpreter);
+    auto regs = std::make_shared<registers>();
+
+    Interpreter interpreter(regs);
+    Interface interface(regs);
 
     interpreter.initialize();
     interface.initialize();

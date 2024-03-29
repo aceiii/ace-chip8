@@ -2,14 +2,16 @@
 
 #include "interpreter.h"
 
+#include <memory>
+
 class Interface {
 public:
-    Interface(Interpreter* interpreter);
+    Interface(std::shared_ptr<registers> regs);
 
     void initialize();
     bool update();
     void cleanup();
 
 public:
-    Interpreter* interpreter;
+    std::shared_ptr<registers> regs;
 };
