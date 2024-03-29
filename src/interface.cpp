@@ -4,6 +4,7 @@
 #include <rlImGui.h>
 #include <imgui.h>
 #include <spdlog/spdlog.h>
+#include <nfd.h>
 
 constexpr int kMaxSamples = 512;
 constexpr int kMaxSamplesPerUpdate = 4096;
@@ -26,6 +27,8 @@ float square(float val) {
 Interface::Interface(Interpreter* interpreter) : interpreter(interpreter) {}
 
 void Interface::initialize() {
+    NFD_Init();
+
     int width = 1200;
     int height = 800;
 
@@ -74,8 +77,24 @@ bool Interface::update() {
     ImGui::ShowDemoWindow(&open);
 
     ImGui::Begin("CHIP-8");
-    if (ImGui::Button("Play Sound")) {
-        regs->sound = 255;
+    {
+        if (ImGui::Button("Play Sound")) {
+            regs->sound = 255;
+        }
+
+        if (ImGui::Button("Open file")) {
+            nfdchar_t *out_path;
+            nfdfilteritem_t filter_item[2] = { { "Source code", "c,cpp,cc" }, { "Headers", "h,hpp" } };
+            nfdresult_t result = NFD_OpenDialog(&out_path, filter_item, 2, NULL);
+            if (result == NFD_OKAY) {
+                spdlog::debug("Opened file: {}", out_path);
+                NFD_FreePath(out_path);
+            } else if (result == NFD_CANCEL) {
+                spdlog::debug("User pressed cancel.");
+            } else {
+                spdlog::debug("Error: {}\n", NFD_GetError());
+            }
+        }
     }
     ImGui::End();
 
@@ -92,4 +111,5 @@ void Interface::cleanup() {
     UnloadAudioStream(stream);
     CloseAudioDevice();
     CloseWindow();
+    NFD_Quit();
 }
