@@ -22,3 +22,6 @@
 [submodule "external/magic_enum"]
 	path = external/magic_enum
 	url = https://github.com/Neargye/magic_enum.git
+[submodule "external/nativefiledialog-extended"]
+	path = external/nativefiledialog-extended
+	url = https://github.com/btzy/nativefiledialog-extended.git
