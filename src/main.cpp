@@ -3,26 +3,15 @@
 
 #include <spdlog/spdlog.h>
 #include <argparse/argparse.hpp>
+#include <magic_enum.hpp>
 
-static bool set_logging_level(const std::string& level) {
-    if (level == "trace") {
-        spdlog::set_level(spdlog::level::trace);
-    } else if (level == "debug") {
-        spdlog::set_level(spdlog::level::debug);
-    } else if (level == "info") {
-        spdlog::set_level(spdlog::level::info);
-    } else if (level == "warn") {
-        spdlog::set_level(spdlog::level::warn);
-    } else if (level == "err") {
-        spdlog::set_level(spdlog::level::err);
-    } else if (level == "critical") {
-        spdlog::set_level(spdlog::level::critical);
-    } else if (level == "off") {
-        spdlog::set_level(spdlog::level::off);
-    } else {
-        return false;
+static bool set_logging_level(const std::string& level_name) {
+    auto level = magic_enum::enum_cast<spdlog::level::level_enum>(level_name);
+    if (level.has_value()) {
+        spdlog::set_level(level.value());
+        return true;
     }
-    return true;
+    return false;
 }
 
 auto main(int argc, char* argv[]) -> int {

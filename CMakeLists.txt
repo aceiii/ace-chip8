@@ -20,12 +20,14 @@ add_subdirectory(external/spdlog)
 add_subdirectory(external/argparse)
 add_subdirectory(external/expected)
 add_subdirectory(external/optional)
+add_subdirectory(external/magic_enum)
 
 add_executable(${EXE_NAME} ${SOURCE_FILES})
 
 target_link_libraries(${EXE_NAME} spdlog)
 target_link_libraries(${EXE_NAME} argparse)
 target_link_libraries(${EXE_NAME} expected)
+target_link_libraries(${EXE_NAME} magic_enum)
 # target_link_libraries(${EXE_NAME} raylib)
 target_link_libraries(${EXE_NAME} rlimgui)
 
