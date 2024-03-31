@@ -25,6 +25,7 @@ private:
     void screen_flip_pixel_at(uint8_t x, uint8_t y);
     tl::optional<uint8_t> get_pressed_key();
     bool is_key_pressed(uint8_t key);
+    void init_font_sprites();
     uint16_t get_font_sprite_addr(uint8_t c);
 
     Timer timer;

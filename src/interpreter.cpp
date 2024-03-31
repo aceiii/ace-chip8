@@ -12,6 +12,7 @@ void Interpreter::initialize() {
 }
 
 void Interpreter::update() {
+    init_font_sprites();
     update_timers();
 }
 
@@ -306,6 +307,64 @@ void Interpreter::screen_flip_pixel_at(uint8_t x, uint8_t y) {
     regs->screen[idx] = !regs->screen[idx];
 }
 
+void Interpreter::init_font_sprites() {
+    uint16_t idx = 0;
+
+    auto load_sprite = [&] (std::array<uint8_t, 5> bytes) {
+        for (int i = 0; i < 5; i += 1) {
+            regs->mem[idx++] = bytes[i];
+        }
+    };
+
+    // 0
+    load_sprite({ 0xf0, 0x90, 0x90, 0x90, 0xf0 });
+
+    // 1
+    load_sprite({ 0x20, 0x60, 0x20, 0x20, 0x70 });
+
+    // 2
+    load_sprite({ 0xf0, 0x10, 0xf0, 0x80, 0xf0 });
+
+    // 3
+    load_sprite({ 0xf0, 0x10, 0xf0, 0x10, 0xf0 });
+
+    // 4
+    load_sprite({ 0x90, 0x90, 0xf0, 0x10, 0x10 });
+
+    // 5
+    load_sprite({ 0xf0, 0x80, 0xf0, 0x10, 0xf0 });
+
+    // 6
+    load_sprite({ 0xf0, 0x80, 0xf0, 0x90, 0xf0 });
+
+    // 7
+    load_sprite({ 0xf0, 0x10, 0x20, 0x40, 0x40 });
+
+    // 8
+    load_sprite({ 0xf0, 0x90, 0xf0, 0x90, 0xf0 });
+
+    // 9
+    load_sprite({ 0xf0, 0x90, 0xf0, 0x10, 0xf0 });
+
+    // A
+    load_sprite({ 0xf0, 0x90, 0xf0, 0x90, 0x90 });
+
+    // B
+    load_sprite({ 0xe0, 0x90, 0xe0, 0x90, 0xe0 });
+
+    // C
+    load_sprite({ 0xf0, 0x80, 0x80, 0x80, 0xf0 });
+
+    // D
+    load_sprite({ 0xe0, 0x90, 0x90, 0x90, 0xe0 });
+
+    // E
+    load_sprite({ 0xf0, 0x80, 0xf0, 0x80, 0xf0 });
+
+    // F
+    load_sprite({ 0xf0, 0x80, 0xf0, 0x80, 0x80 });
+}
+
 uint16_t Interpreter::get_font_sprite_addr(uint8_t c) {
-    return 0;
+    return regs->mem[c * 5];
 }

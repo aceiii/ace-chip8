@@ -96,11 +96,13 @@ bool Interface::update() {
             SetMasterVolume(volume / 100.0f);
         }
 
+        static int sound_val;
         if (ImGui::Button("Play Sound")) {
-            regs->st = 255;
+            regs->st = sound_val;
         }
-
         ImGui::SameLine();
+        ImGui::SliderInt("##Sound Val", &sound_val, 1, 255);
+
         if (ImGui::Button("Stop Sound")) {
             regs->st = 0;
         }
@@ -129,7 +131,7 @@ bool Interface::update() {
             }
         }
         ImGui::SameLine();
-        ImGui::SliderInt("Count", &random_pixel_count, 1, 100);
+        ImGui::SliderInt("##Pixel Count", &random_pixel_count, 1, 100);
     }
     ImGui::End();
 
