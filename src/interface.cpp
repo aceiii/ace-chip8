@@ -63,8 +63,7 @@ void Interface::initialize() {
     SetTargetFPS(60);
     rlImGuiSetup(true);
 
-    pixel_size = kDefaultScreenPixelSize;
-    screen_texture = LoadRenderTexture(kScreenWidth * pixel_size, kScreenHeight * pixel_size);
+    screen_texture = LoadRenderTexture(kScreenWidth * kDefaultScreenPixelSize, kScreenHeight * kDefaultScreenPixelSize);
 }
 
 bool Interface::update() {
@@ -75,7 +74,7 @@ bool Interface::update() {
         for (int x = 0; x < kScreenWidth; x += 1) {
             int idx = (y * kScreenWidth) + x;
             bool px = regs->screen[idx];
-            DrawRectangle(x * pixel_size, y * pixel_size, pixel_size, pixel_size, px ? RAYWHITE : BLACK);
+            DrawRectangle(x * kDefaultScreenPixelSize, y * kDefaultScreenPixelSize, kDefaultScreenPixelSize, kDefaultScreenPixelSize, px ? RAYWHITE : BLACK);
         }
     }
     EndTextureMode();
@@ -131,16 +130,12 @@ bool Interface::update() {
         }
         ImGui::SameLine();
         ImGui::SliderInt("Count", &random_pixel_count, 1, 100);
-
-        if (ImGui::SliderInt("Pixel Size", &pixel_size, 1, 10)) {
-            screen_texture = LoadRenderTexture(kScreenWidth * pixel_size, kScreenHeight * pixel_size);
-        }
     }
     ImGui::End();
 
     ImGui::Begin("SCREEN");
     {
-        rlImGuiImageRenderTexture(&screen_texture);
+        rlImGuiImageRenderTextureFit(&screen_texture, true);
     }
     ImGui::End();
 
