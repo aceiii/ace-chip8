@@ -1,7 +1,7 @@
 #include "interpreter.h"
+#include "random.h"
 
 #include <spdlog/spdlog.h>
-#include <random>
 
 constexpr double kTimerFrequency = 1 / 60.0;
 
@@ -252,13 +252,6 @@ void Interpreter::stack_push(uint16_t val) {
 
 uint16_t Interpreter::stack_pop() {
     return regs->stack[--regs->sp];
-}
-
-uint8_t Interpreter::random_byte() {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    static std::uniform_int_distribution<> dist(0, 255);
-    return dist(gen);
 }
 
 tl::optional<uint8_t> Interpreter::get_pressed_key() {

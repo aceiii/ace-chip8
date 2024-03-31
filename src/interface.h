@@ -2,6 +2,7 @@
 
 #include "interpreter.h"
 
+#include <raylib.h>
 #include <memory>
 
 class Interface {
@@ -14,4 +15,5 @@ public:
 
 public:
     std::shared_ptr<registers> regs;
+    RenderTexture2D screen_texture;
 };

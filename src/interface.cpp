@@ -1,6 +1,6 @@
 #include "interface.h"
+#include "random.h"
 
-#include <raylib.h>
 #include <rlImGui.h>
 #include <imgui.h>
 #include <spdlog/spdlog.h>
@@ -9,6 +9,7 @@
 constexpr int kMaxSamples = 512;
 constexpr int kMaxSamplesPerUpdate = 4096;
 constexpr int kAudioSampleRate = 44100;
+constexpr int kScreenPixelSize = 4;
 
 AudioStream stream;
 
@@ -61,10 +62,22 @@ void Interface::initialize() {
     SetExitKey(KEY_ESCAPE);
     SetTargetFPS(60);
     rlImGuiSetup(true);
+
+    screen_texture = LoadRenderTexture(kScreenWidth * kScreenPixelSize, kScreenHeight * kScreenPixelSize);
 }
 
 bool Interface::update() {
     play_sound = regs->st > 0;
+
+    BeginTextureMode(screen_texture);
+    for (int y = 0; y < kScreenHeight; y += 1) {
+        for (int x = 0; x < kScreenWidth; x += 1) {
+            int idx = (y * kScreenWidth) + x;
+            bool px = regs->screen[idx];
+            DrawRectangle(x * kScreenPixelSize, y * kScreenPixelSize, kScreenPixelSize, kScreenPixelSize, px ? RAYWHITE : BLACK);
+        }
+    }
+    EndTextureMode();
 
     BeginDrawing();
     ClearBackground(RAYWHITE);
@@ -105,6 +118,19 @@ bool Interface::update() {
                 spdlog::debug("Error: {}\n", NFD_GetError());
             }
         }
+
+        if (ImGui::Button("Toggle Random Pixel")) {
+            uint8_t x = random_byte() % kScreenWidth;
+            uint8_t y = random_byte() % kScreenHeight;
+            int idx = (y * kScreenWidth) + x;
+            regs->screen[idx] = !regs->screen[idx];
+        }
+    }
+    ImGui::End();
+
+    ImGui::Begin("SCREEN");
+    {
+        rlImGuiImageRenderTexture(&screen_texture);
     }
     ImGui::End();
 

@@ -17,7 +17,6 @@ public:
     void step();
 
 private:
-    uint8_t random_byte();
     void update_timers();
     void stack_push(uint16_t val);
     uint16_t stack_pop();

@@ -13,6 +13,7 @@ set(SOURCE_FILES
     src/interpreter.cpp
     src/interface.cpp
     src/timer.cpp
+    src/random.cpp
 )
 
 set(EXPECTED_BUILD_TESTS OFF)
