@@ -16,4 +16,6 @@ public:
 public:
     std::shared_ptr<registers> regs;
     RenderTexture2D screen_texture;
+
+    int pixel_size;
 };

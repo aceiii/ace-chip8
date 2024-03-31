@@ -9,7 +9,7 @@
 constexpr int kMaxSamples = 512;
 constexpr int kMaxSamplesPerUpdate = 4096;
 constexpr int kAudioSampleRate = 44100;
-constexpr int kScreenPixelSize = 4;
+constexpr int kDefaultScreenPixelSize = 4;
 
 AudioStream stream;
 
@@ -63,7 +63,8 @@ void Interface::initialize() {
     SetTargetFPS(60);
     rlImGuiSetup(true);
 
-    screen_texture = LoadRenderTexture(kScreenWidth * kScreenPixelSize, kScreenHeight * kScreenPixelSize);
+    pixel_size = kDefaultScreenPixelSize;
+    screen_texture = LoadRenderTexture(kScreenWidth * pixel_size, kScreenHeight * pixel_size);
 }
 
 bool Interface::update() {
@@ -74,7 +75,7 @@ bool Interface::update() {
         for (int x = 0; x < kScreenWidth; x += 1) {
             int idx = (y * kScreenWidth) + x;
             bool px = regs->screen[idx];
-            DrawRectangle(x * kScreenPixelSize, y * kScreenPixelSize, kScreenPixelSize, kScreenPixelSize, px ? RAYWHITE : BLACK);
+            DrawRectangle(x * pixel_size, y * pixel_size, pixel_size, pixel_size, px ? RAYWHITE : BLACK);
         }
     }
     EndTextureMode();
@@ -119,11 +120,20 @@ bool Interface::update() {
             }
         }
 
+        static int random_pixel_count = 1;
         if (ImGui::Button("Toggle Random Pixel")) {
-            uint8_t x = random_byte() % kScreenWidth;
-            uint8_t y = random_byte() % kScreenHeight;
-            int idx = (y * kScreenWidth) + x;
-            regs->screen[idx] = !regs->screen[idx];
+            for (int i = 0; i < random_pixel_count; i += 1) {
+                uint8_t x = random_byte() % kScreenWidth;
+                uint8_t y = random_byte() % kScreenHeight;
+                int idx = (y * kScreenWidth) + x;
+                regs->screen[idx] = !regs->screen[idx];
+            }
+        }
+        ImGui::SameLine();
+        ImGui::SliderInt("Count", &random_pixel_count, 1, 100);
+
+        if (ImGui::SliderInt("Pixel Size", &pixel_size, 1, 10)) {
+            screen_texture = LoadRenderTexture(kScreenWidth * pixel_size, kScreenHeight * pixel_size);
         }
     }
     ImGui::End();
