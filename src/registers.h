@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <algorithm>
 
 constexpr int kMemSize = 4096;
 constexpr int kGeneralRegisterCount = 16;
@@ -22,4 +23,18 @@ struct registers {
     std::array<uint16_t, kStackSize> stack;
     std::array<bool, kKeyboardSize> kbd;
     std::array<bool, kScreenPixelCount> screen;
+
+    inline void reset() {
+        pc = 0;
+        i = 0;
+        sp = 0;
+        dt = 0;
+        st = 0;
+
+        std::fill(v.begin(), v.end(), 0);
+        std::fill(mem.begin(), mem.end(), 0);
+        std::fill(stack.begin(), stack.end(), 0);
+        std::fill(kbd.begin(), kbd.end(), 0);
+        std::fill(screen.begin(), screen.end(), 0);
+    }
 };
