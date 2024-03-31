@@ -14,6 +14,7 @@ public:
     void update();
     void cleanup();
 
+    void reset();
     void step();
 
 private:

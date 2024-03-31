@@ -2,6 +2,7 @@
 #include "random.h"
 
 #include <spdlog/spdlog.h>
+#include <algorithm>
 
 constexpr double kTimerFrequency = 1 / 60.0;
 
@@ -9,14 +10,30 @@ Interpreter::Interpreter(std::shared_ptr<registers> regs) : regs(regs) {}
 
 void Interpreter::initialize() {
     timer.tick();
+    reset();
 }
 
 void Interpreter::update() {
-    init_font_sprites();
     update_timers();
 }
 
 void Interpreter::cleanup() {
+}
+
+void Interpreter::reset() {
+    regs->pc = 0x200;
+    regs->i = 0;
+    regs->sp = 0;
+    regs->dt = 0;
+    regs->st = 0;
+
+    std::fill(regs->v.begin(), regs->v.end(), 0);
+    std::fill(regs->mem.begin(), regs->mem.end(), 0);
+    std::fill(regs->stack.begin(), regs->stack.end(), 0);
+    std::fill(regs->kbd.begin(), regs->kbd.end(), 0);
+    std::fill(regs->screen.begin(), regs->screen.end(), 0);
+
+    init_font_sprites();
 }
 
 void Interpreter::step() {
