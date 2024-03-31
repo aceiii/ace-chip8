@@ -33,6 +33,7 @@ void Interpreter::step() {
     case 0x0:
         if (instr == 0x00e0) {
             // clear screen
+            screen_clear();
         } else if (instr == 0x00ee) {
             // returns from subroutine
             regs->pc = stack_pop();
@@ -93,6 +94,7 @@ void Interpreter::step() {
         case 0x3:
             // sets VX to VX xor VY
             regs->v[x] = regs->v[x] xor regs->v[y];
+            break;
         case 0x4:
             // adds VY to VX, set VF to 1 if overflow else 0
             {
@@ -144,14 +146,21 @@ void Interpreter::step() {
         break;
     case 0xd:
         // draws sprite at coord (VX, VY)
+        screen_draw_sprite(regs->v[x], regs->v[y], n);
         break;
     case 0xe:
         switch (nn) {
         case 0x9e:
             // skips next instruction if key stored in VX is pressed
+            if (is_key_pressed(regs->v[x])) {
+                regs->pc += 2;
+            }
             break;
         case 0xa1:
             // skips next instruction if key stored in VX is not pressed
+            if (!is_key_pressed(regs->v[x])) {
+                regs->pc += 2;
+            }
             break;
         }
         break;
@@ -187,6 +196,7 @@ void Interpreter::step() {
                     break;
                 case 0x29:
                     // sets I to for sprite character in VX
+                    regs->i = get_font_sprite_addr(regs->v[x]);
                     break;
                 case 0x33:
                     // stores BCD repr of VX at address I
@@ -252,5 +262,57 @@ uint8_t Interpreter::random_byte() {
 }
 
 tl::optional<uint8_t> Interpreter::get_pressed_key() {
+    for (int key = 0; key < regs->kbd.size(); key += 1) {
+        if (regs->kbd[key]) {
+            return key;
+        }
+    }
     return tl::nullopt;
+}
+
+bool Interpreter::is_key_pressed(uint8_t key) {
+    return regs->kbd[key];
+}
+
+void Interpreter::screen_clear() {
+    for (int i = 0; i < regs->screen.size(); i += 1) {
+        regs->screen[i] = false;
+    }
+}
+
+void Interpreter::screen_draw_sprite(uint8_t x, uint8_t y, uint8_t n) {
+    x = x % kScreenWidth;
+    y = y % kScreenHeight;
+
+    regs->v[0xf] = 0;
+
+    uint16_t start = regs->i;
+    for (int j = 0; j < n; j += 1) {
+        uint16_t i = start + j;
+        uint16_t sx = x + 8;
+        uint16_t sy = y + j;
+        uint8_t row = regs->mem[i];
+
+        for (int b = 0; b < 8; b += 1) {
+            if (row & 1) {
+                screen_flip_pixel_at(sx, sy);
+            }
+
+            row >>= 1;
+            sx -= 1;
+        }
+    }
+}
+
+void Interpreter::screen_flip_pixel_at(uint8_t x, uint8_t y) {
+    if (x >= kScreenWidth || y >= kScreenHeight) {
+        return;
+    }
+
+    int idx = (y * kScreenWidth) + x;
+    regs->screen[idx] = !regs->screen[idx];
+}
+
+uint16_t Interpreter::get_font_sprite_addr(uint8_t c) {
+    return 0;
 }
