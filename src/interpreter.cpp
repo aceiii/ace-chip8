@@ -1,6 +1,7 @@
 #include "interpreter.h"
 
 #include <spdlog/spdlog.h>
+#include <random>
 
 constexpr double kTimerFrequency = 1 / 60.0;
 
@@ -94,24 +95,39 @@ void Interpreter::step() {
             regs->v[x] = regs->v[x] xor regs->v[y];
         case 0x4:
             // adds VY to VX, set VF to 1 if overflow else 0
-
+            {
+                uint16_t val = regs->v[x] + regs->v[y];
+                regs->v[0xf] = val >> 8;
+                regs->v[x] = val & 0xff;
+            }
             break;
         case 0x5:
             // subtract VY from VX, set VF to 0 if underflow else 1
+            regs->v[0xf] = regs->v[x] >= regs->v[y] ? 1 : 0;
+            regs->v[x] -= regs->v[y];
             break;
         case 0x6:
             // store LSB of VX in VF, right shift VX by 1
+            regs->v[0xf] = regs->v[x] & 0x1;
+            regs->v[x] >>= 1;
             break;
         case 0x7:
-            // sets VX to VY - VF, set VF to 0 if underflow else 1
+            // sets VX to VY - VX, set VF to 0 if underflow else 1
+            regs->v[0xf] = regs->v[y] >= regs->v[x] ? 1 : 0;
+            regs->v[x] = regs->v[y] - regs->v[x];
             break;
         case 0xe:
             // store MSB of VX in VF, left shift VX by 1
+            regs->v[0xf] = regs->v[x] & 0x80;
+            regs->v[x] <<= 1;
             break;
         }
         break;
     case 0x9:
         // skips next instruction if VX != VY
+        if (regs->v[x] != regs->v[y]) {
+            regs->pc += 2;
+        }
         break;
     case 0xa:
         // sets I to NNN
@@ -119,9 +135,12 @@ void Interpreter::step() {
         break;
     case 0xb:
         // jumps to address NNN + V0
+        regs->pc = nnn + regs->v[0];
+        // TODO: CHIP-48 & SUPER-CHIP - BXNN jump to XNN + VX
         break;
     case 0xc:
         // sets VX to rand() & NN
+        regs->v[x] = random_byte() & nn;
         break;
     case 0xd:
         // draws sprite at coord (VX, VY)
@@ -137,34 +156,67 @@ void Interpreter::step() {
         }
         break;
     case 0xf:
-        switch (nn) {
-            case 0x07:
-                // sets VX to delay timer
-                break;
-            case 0x0a:
-                // wait for keypress, store in VX
-                break;
-            case 0x15:
-                // set delay timer to VX
-                break;
-            case 0x18:
-                // set sound timer to VX
-                break;
-            case 0x1e:
-                // adds VX to I, VF unchanged
-                break;
-            case 0x29:
-                // sets I to for sprite character in VX
-                break;
-            case 0x33:
-                // stores BCD repr of VX at address I
-                break;
-            case 0x55:
-                // stores V0 to VX (inclusive) in memory starting at address I
-                break;
-            case 0x65:
-                // fills V0 to VX (inclusive) with values from memory starting at I
-                break;
+        {
+            switch (nn) {
+                case 0x07:
+                    // sets VX to delay timer
+                    regs->v[x] = regs->dt;
+                    break;
+                case 0x0a:
+                    // wait for keypress, store in VX
+                    {
+                        auto key = get_pressed_key();
+                        if (!key.has_value()) {
+                            regs->pc -= 2;
+                        } else {
+                            regs->v[x] = key.value();
+                        }
+                    }
+                    break;
+                case 0x15:
+                    // set delay timer to VX
+                    regs->dt = regs->v[x];
+                    break;
+                case 0x18:
+                    // set sound timer to VX
+                    regs->st = regs->v[x];
+                    break;
+                case 0x1e:
+                    // adds VX to I, VF unchanged
+                    regs->i += regs->v[x];
+                    break;
+                case 0x29:
+                    // sets I to for sprite character in VX
+                    break;
+                case 0x33:
+                    // stores BCD repr of VX at address I
+                    {
+                        uint8_t i = regs->i;
+                        uint8_t val = regs->v[x];
+                        regs->mem[i] = val / 100;
+                        regs->mem[i + 1] = (val / 10) % 10;
+                        regs->mem[i + 2] = val % 10;
+                    }
+                    break;
+                case 0x55:
+                    // stores V0 to VX (inclusive) in memory starting at address I
+                    {
+                        uint8_t i = regs->i;
+                        for (int n = 0; n < x; i += 1) {
+                            regs->mem[i + n] = regs->v[n];
+                        }
+                    }
+                    break;
+                case 0x65:
+                    // fills V0 to VX (inclusive) with values from memory starting at I
+                    {
+                        uint8_t i = regs->i;
+                        for (int n = 0; n < x; i += 1) {
+                            regs->v[n] = regs->mem[i + n];
+                        }
+                    }
+                    break;
+            }
         }
         break;
     }
@@ -190,4 +242,15 @@ void Interpreter::stack_push(uint16_t val) {
 
 uint16_t Interpreter::stack_pop() {
     return regs->stack[--regs->sp];
+}
+
+uint8_t Interpreter::random_byte() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution<> dist(0, 255);
+    return dist(gen);
+}
+
+tl::optional<uint8_t> Interpreter::get_pressed_key() {
+    return tl::nullopt;
 }
