@@ -17,6 +17,8 @@ public:
 
 private:
     void update_timers();
+    void stack_push(uint16_t val);
+    uint16_t stack_pop();
 
     Timer timer;
     double last_tick = 0;

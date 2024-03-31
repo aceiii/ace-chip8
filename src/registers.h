@@ -4,6 +4,7 @@
 
 constexpr int kMemSize = 4096;
 constexpr int kGeneralRegisterCount = 16;
+constexpr int kStackSize = 16;
 
 struct registers {
     uint16_t pc = 0;
@@ -13,4 +14,5 @@ struct registers {
     uint8_t st = 0;
     std::array<uint8_t, kGeneralRegisterCount> v;
     std::array<uint8_t, kMemSize> mem;
+    std::array<uint16_t, kStackSize> stack;
 };
