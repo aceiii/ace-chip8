@@ -45,15 +45,18 @@ void Interpreter::stop() {
 }
 
 void Interpreter::step() {
-    uint16_t instr = regs->mem[regs->pc];
+    uint8_t instr_hi = regs->mem[regs->pc];
+    uint8_t instr_lo = regs->mem[regs->pc + 1];
+
     regs->pc += 2;
 
-    uint8_t first = instr >> 12;
-    uint8_t x = (instr >> 8) & 0xf;
-    uint8_t y = (instr >> 4) & 0xf;
+    uint16_t instr = instr_lo | (instr_hi << 8);
+    uint8_t first = instr_hi >> 4;
+    uint8_t x = instr_hi & 0xf;
+    uint8_t y = instr_lo >> 4;
     uint8_t n = instr & 0xf;
-    uint8_t nn = instr & 0xff;
-    uint8_t nnn = instr & 0xfff;
+    uint8_t nn = instr_lo;
+    uint16_t nnn = (instr_lo | (instr_hi << 8)) & 0xfff;
 
     switch (first) {
     case 0x0:
