@@ -62,7 +62,7 @@ void Interface::initialize() {
     PlayAudioStream(stream);
 
     SetExitKey(KEY_ESCAPE);
-    SetTargetFPS(60);
+    // SetTargetFPS(60);
     rlImGuiSetup(true);
 
     screen_texture = LoadRenderTexture(kScreenWidth * kDefaultScreenPixelSize, kScreenHeight * kDefaultScreenPixelSize);
@@ -145,6 +145,20 @@ bool Interface::update() {
 
         if (ImGui::Button("Play")) {
             interpreter->play();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Stop")) {
+            interpreter->stop();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Step")) {
+            interpreter->step();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Reset")) {
+            interpreter->stop();
+            interpreter->reset();
+            interpreter->load_rom_bytes(rom);
         }
     }
     ImGui::End();
