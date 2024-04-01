@@ -43,7 +43,7 @@ auto main(int argc, char* argv[]) -> int {
     auto regs = std::make_shared<registers>();
 
     Interpreter interpreter(regs);
-    Interface interface(regs);
+    Interface interface(regs, &interpreter);
 
     interpreter.initialize();
     interface.initialize();

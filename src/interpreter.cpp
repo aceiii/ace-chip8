@@ -5,6 +5,9 @@
 
 constexpr double kTimerFrequency = 1 / 60.0;
 
+const int kFontStartIndex = 0x50;
+const int kRomStartIndex = 0x200;
+
 Interpreter::Interpreter(std::shared_ptr<registers> regs) : regs(regs) {}
 
 void Interpreter::initialize() {
@@ -14,9 +17,16 @@ void Interpreter::initialize() {
 
 void Interpreter::update() {
     update_timers();
+    if (playing) {
+        step();
+    }
 }
 
 void Interpreter::cleanup() {
+}
+
+void Interpreter::load_rom_bytes(const std::vector<uint8_t>& bytes) {
+    std::copy(bytes.begin(), bytes.end(), regs->mem.begin() + kRomStartIndex);
 }
 
 void Interpreter::reset() {
@@ -24,6 +34,14 @@ void Interpreter::reset() {
 
     regs->pc = 0x200;
     init_font_sprites();
+}
+
+void Interpreter::play() {
+    playing = true;
+}
+
+void Interpreter::stop() {
+    playing = false;
 }
 
 void Interpreter::step() {
@@ -315,7 +333,7 @@ void Interpreter::screen_flip_pixel_at(uint8_t x, uint8_t y) {
 }
 
 void Interpreter::init_font_sprites() {
-    uint16_t idx = 0;
+    uint16_t idx = kFontStartIndex;
 
     auto load_sprite = [&] (std::array<uint8_t, 5> bytes) {
         for (int i = 0; i < 5; i += 1) {
@@ -373,5 +391,5 @@ void Interpreter::init_font_sprites() {
 }
 
 uint16_t Interpreter::get_font_sprite_addr(uint8_t c) {
-    return regs->mem[c * 5];
+    return regs->mem[kFontStartIndex + (c * 5)];
 }

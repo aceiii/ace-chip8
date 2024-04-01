@@ -14,8 +14,12 @@ public:
     void update();
     void cleanup();
 
+    void load_rom_bytes(const std::vector<uint8_t>& bytes);
+
     void reset();
     void step();
+    void play();
+    void stop();
 
 private:
     void update_timers();
@@ -31,6 +35,7 @@ private:
 
     Timer timer;
     double last_tick = 0;
+    bool playing = false;
 
     std::shared_ptr<registers> regs;
 };

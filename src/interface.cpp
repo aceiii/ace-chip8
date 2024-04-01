@@ -5,6 +5,7 @@
 #include <imgui.h>
 #include <spdlog/spdlog.h>
 #include <nfd.h>
+#include <fstream>
 
 constexpr int kMaxSamples = 512;
 constexpr int kMaxSamplesPerUpdate = 4096;
@@ -25,7 +26,8 @@ float square(float val) {
     return 0;
 }
 
-Interface::Interface(std::shared_ptr<registers> regs) : regs(regs) {}
+Interface::Interface(std::shared_ptr<registers> regs, Interpreter* interpreter) : interpreter{interpreter}, regs(regs)
+{}
 
 void Interface::initialize() {
     NFD_Init();
@@ -88,7 +90,11 @@ bool Interface::update() {
 
     ImGui::Begin("CHIP-8");
     {
-        ImGui::Text("ST: %d", regs->st);
+        ImGui::Text("ST: %04x (%05d)", regs->st, regs->st);
+        ImGui::Text("DT: %04x (%05d)", regs->dt, regs->dt);
+        ImGui::Text("I:  %04x (%05d)", regs->i, regs->i);
+        ImGui::Text("PC: %04x (%05d)", regs->pc, regs->pc);
+        ImGui::Text("SP: %04x (%05d)", regs->sp, regs->sp);
 
         static float volume = GetMasterVolume() * 100.0f;
         if (ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f")) {
@@ -108,12 +114,16 @@ bool Interface::update() {
         }
 
         if (ImGui::Button("Open file")) {
-            nfdchar_t *out_path;
-            nfdfilteritem_t filter_item[2] = { { "Source code", "c,cpp,cc" }, { "Headers", "h,hpp" } };
-            nfdresult_t result = NFD_OpenDialog(&out_path, filter_item, 2, NULL);
+            nfdchar_t *rom_path;
+            nfdfilteritem_t filter_item[2] = { { "ROM", "rom" }, { "CHIP-8", "ch8" } };
+            nfdresult_t result = NFD_OpenDialog(&rom_path, filter_item, 2, NULL);
             if (result == NFD_OKAY) {
-                spdlog::debug("Opened file: {}", out_path);
-                NFD_FreePath(out_path);
+                spdlog::debug("Opened file: {}", rom_path);
+
+                load_rom(rom_path);
+                interpreter->load_rom_bytes(rom);
+
+                NFD_FreePath(rom_path);
             } else if (result == NFD_CANCEL) {
                 spdlog::debug("User pressed cancel.");
             } else {
@@ -132,12 +142,26 @@ bool Interface::update() {
         }
         ImGui::SameLine();
         ImGui::SliderInt("##Pixel Count", &random_pixel_count, 1, 100);
+
+        if (ImGui::Button("Play")) {
+            interpreter->play();
+        }
     }
     ImGui::End();
 
     ImGui::Begin("SCREEN");
     {
         rlImGuiImageRenderTextureFit(&screen_texture, true);
+    }
+    ImGui::End();
+
+    ImGui::Begin("MEMORY");
+    {
+        for (int i = 0; i < regs->mem.size(); i += 2) {
+            uint8_t hi = regs->mem[i];
+            uint8_t lo = regs->mem[i + 1];
+            ImGui::Text("%04x: %02x %02x", i, hi, lo);
+        }
     }
     ImGui::End();
 
@@ -155,4 +179,9 @@ void Interface::cleanup() {
     CloseAudioDevice();
     CloseWindow();
     NFD_Quit();
+}
+
+void Interface::load_rom(const std::string& filename) {
+    std::ifstream in(filename, std::ios::binary);
+    rom = { std::istreambuf_iterator<char>(in), {} };
 }
