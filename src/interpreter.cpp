@@ -40,6 +40,8 @@ void Interpreter::play() { playing = true; }
 
 void Interpreter::stop() { playing = false; }
 
+bool Interpreter::is_playing() const { return playing; }
+
 void Interpreter::step() {
   uint8_t instr_hi = regs->mem[regs->pc];
   uint8_t instr_lo = regs->mem[regs->pc + 1];

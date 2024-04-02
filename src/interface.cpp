@@ -1,14 +1,14 @@
 #include "interface.h"
 #include "random.h"
 
-#include <rlImGui.h>
+#include <filesystem>
+#include <fstream>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_memory_editor/imgui_memory_editor.h>
-#include <spdlog/spdlog.h>
 #include <nfd.h>
-#include <fstream>
-
+#include <rlImGui.h>
+#include <spdlog/spdlog.h>
 
 constexpr int kMaxSamples = 512;
 constexpr int kMaxSamplesPerUpdate = 4096;
@@ -20,228 +20,307 @@ AudioStream stream;
 bool play_sound = false;
 float sine_idx = 0.0f;
 
+bool rom_loaded = false;
+bool auto_play = true;
+
 float square(float val) {
-    if (val > 0) {
-        return 1.0f;
-    } else if (val < 0) {
-        return -1.0f;
-    }
-    return 0;
+  if (val > 0) {
+    return 1.0f;
+  } else if (val < 0) {
+    return -1.0f;
+  }
+  return 0;
 }
 
-Interface::Interface(std::shared_ptr<registers> regs, Interpreter* interpreter) : interpreter{interpreter}, regs(regs)
-{}
+Interface::Interface(std::shared_ptr<registers> regs, Interpreter *interpreter)
+    : interpreter{interpreter}, regs(regs) {}
 
 void Interface::initialize() {
-    NFD_Init();
+  NFD_Init();
 
-    int width = 1200;
-    int height = 800;
+  int width = 1200;
+  int height = 800;
 
-    InitWindow(width, height, "CHIP-8");
-    InitAudioDevice();
+  InitWindow(width, height, "CHIP-8");
+  InitAudioDevice();
 
-    stream = LoadAudioStream(44100, 16, 1);
-    SetAudioStreamBufferSizeDefault(kMaxSamplesPerUpdate);
+  stream = LoadAudioStream(44100, 16, 1);
+  SetAudioStreamBufferSizeDefault(kMaxSamplesPerUpdate);
 
-    SetAudioStreamCallback(stream, [] (void* buffer, unsigned int frames) {
-        const float frequency = 440.0f;
+  SetAudioStreamCallback(stream, [](void *buffer, unsigned int frames) {
+    const float frequency = 440.0f;
 
-        float incr = frequency / float(kAudioSampleRate);
-        short *d = (short *)buffer;
+    float incr = frequency / float(kAudioSampleRate);
+    short *d = (short *)buffer;
 
-        for (unsigned int i = 0; i < frames; i++)
-        {
-            if (!play_sound) {
-                d[i] = 0;
-                continue;
-            }
+    for (unsigned int i = 0; i < frames; i++) {
+      if (!play_sound) {
+        d[i] = 0;
+        continue;
+      }
 
-            d[i] = (short)(32000.0f*square(sinf(2*PI*sine_idx)));
-            sine_idx += incr;
-            if (sine_idx > 1.0f) sine_idx -= 1.0f;
-        }
-    });
-    PlayAudioStream(stream);
+      d[i] = (short)(32000.0f * square(sinf(2 * PI * sine_idx)));
+      sine_idx += incr;
+      if (sine_idx > 1.0f)
+        sine_idx -= 1.0f;
+    }
+  });
+  PlayAudioStream(stream);
 
-    // SetExitKey(KEY_ESCAPE);
-    // SetTargetFPS(60);
-    rlImGuiSetup(true);
+  // SetExitKey(KEY_ESCAPE);
+  // SetTargetFPS(60);
+  rlImGuiSetup(true);
 
-    while (!IsWindowReady()) {}
+  while (!IsWindowReady()) {
+  }
 
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  ImGuiIO &io = ImGui::GetIO();
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-    screen_texture = LoadRenderTexture(kScreenWidth * kDefaultScreenPixelSize, kScreenHeight * kDefaultScreenPixelSize);
+  screen_texture = LoadRenderTexture(kScreenWidth * kDefaultScreenPixelSize,
+                                     kScreenHeight * kDefaultScreenPixelSize);
 }
 
 bool Interface::update() {
-    play_sound = regs->st > 0;
 
-    BeginTextureMode(screen_texture);
-    for (int y = 0; y < kScreenHeight; y += 1) {
-        for (int x = 0; x < kScreenWidth; x += 1) {
-            int idx = (y * kScreenWidth) + x;
-            bool px = regs->screen[idx];
-            DrawRectangle(x * kDefaultScreenPixelSize, y * kDefaultScreenPixelSize, kDefaultScreenPixelSize, kDefaultScreenPixelSize, px ? RAYWHITE : BLACK);
-        }
-    }
-    EndTextureMode();
-
-    BeginDrawing();
-    ClearBackground(RAYWHITE);
-
-    rlImGuiBegin();
-
-    // bool open = true;
-    // ImGui::ShowDemoWindow(&open);
-
-    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-
-    if (ImGui::BeginMainMenuBar()) {
-        if (ImGui::BeginMenu("File")) {
-            // ShowExampleMenuFile();
-
-            if (ImGui::MenuItem("Load ROM")) {
-                open_load_rom_dialog();
-            }
-
-            ImGui::Separator();
-
-            if (ImGui::MenuItem("Quit", "Ctrl+Q")) {
-                should_close = true;
-            }
-            ImGui::EndMenu();
-        }
-        if (ImGui::BeginMenu("View")) {
-            ImGui::MenuItem("Screen", nullptr, &show_screen);
-            ImGui::MenuItem("Memory", nullptr, &show_memory);
-            ImGui::MenuItem("Registers", nullptr, &show_registers);
-            ImGui::EndMenu();
-        }
-        ImGui::EndMainMenuBar();
+  if (IsFileDropped()) {
+    FilePathList droppedFiles = LoadDroppedFiles();
+    if (droppedFiles.count > 0) {
+      spdlog::info("Dropped file: {}", droppedFiles.paths[0]);
+      load_rom(droppedFiles.paths[0]);
     }
 
-    if (show_registers) {
-        if (ImGui::Begin("Registers", &show_registers)) {
-            ImGui::Text("ST: %04x (%05d)", regs->st, regs->st);
-            ImGui::Text("DT: %04x (%05d)", regs->dt, regs->dt);
-            ImGui::Text("I:  %04x (%05d)", regs->i, regs->i);
-            ImGui::Text("PC: %04x (%05d)", regs->pc, regs->pc);
-            ImGui::Text("SP: %04x (%05d)", regs->sp, regs->sp);
+    UnloadDroppedFiles(droppedFiles);
+  }
 
-            static float volume = GetMasterVolume() * 100.0f;
-            if (ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f")) {
-                spdlog::debug("Set volume: {}", volume);
-                SetMasterVolume(volume / 100.0f);
-            }
+  play_sound = regs->st > 0;
 
-            static int sound_val;
-            if (ImGui::Button("Play Sound")) {
-                regs->st = sound_val;
-            }
-            ImGui::SameLine();
-            ImGui::SliderInt("##Sound Val", &sound_val, 1, 255);
-
-            if (ImGui::Button("Stop Sound")) {
-                regs->st = 0;
-            }
-
-            if (ImGui::Button("Open file")) {
-                open_load_rom_dialog();
-            }
-
-            static int random_pixel_count = 1;
-            if (ImGui::Button("Toggle Random Pixel")) {
-                for (int i = 0; i < random_pixel_count; i += 1) {
-                    uint8_t x = random_byte() % kScreenWidth;
-                    uint8_t y = random_byte() % kScreenHeight;
-                    int idx = (y * kScreenWidth) + x;
-                    regs->screen[idx] = !regs->screen[idx];
-                }
-            }
-            ImGui::SameLine();
-            ImGui::SliderInt("##Pixel Count", &random_pixel_count, 1, 100);
-
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2 { 16.0f, 8.0f });
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-
-            if (ImGui::Button(ICON_FA_PLAY)) {
-                interpreter->play();
-            }
-
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_PAUSE)) {
-                interpreter->stop();
-            }
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_FORWARD_STEP)) {
-                interpreter->step();
-            }
-            ImGui::SameLine();
-            if (ImGui::Button(ICON_FA_STOP)) {
-                interpreter->stop();
-                interpreter->reset();
-                interpreter->load_rom_bytes(rom);
-            }
-
-            ImGui::PopStyleVar();
-            ImGui::PopStyleVar();
-        }
-        ImGui::End();
+  BeginTextureMode(screen_texture);
+  for (int y = 0; y < kScreenHeight; y += 1) {
+    for (int x = 0; x < kScreenWidth; x += 1) {
+      int idx = (y * kScreenWidth) + x;
+      bool px = regs->screen[idx];
+      DrawRectangle(x * kDefaultScreenPixelSize, y * kDefaultScreenPixelSize,
+                    kDefaultScreenPixelSize, kDefaultScreenPixelSize,
+                    px ? RAYWHITE : BLACK);
     }
+  }
+  EndTextureMode();
 
-    if (show_screen) {
-        if (ImGui::Begin("Screen", &show_screen)) {
-            rlImGuiImageRenderTextureFit(&screen_texture, true);
-        }
-        ImGui::End();
+  BeginDrawing();
+  ClearBackground(RAYWHITE);
+
+  rlImGuiBegin();
+
+  // bool open = true;
+  // ImGui::ShowDemoWindow(&open);
+
+  int dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+
+  if (ImGui::BeginMainMenuBar()) {
+    if (ImGui::BeginMenu("File")) {
+      // ShowExampleMenuFile();
+
+      if (ImGui::MenuItem("Load ROM")) {
+        open_load_rom_dialog();
+      }
+
+      ImGui::Separator();
+
+      if (ImGui::MenuItem("Quit", "Ctrl+Q")) {
+        should_close = true;
+      }
+      ImGui::EndMenu();
     }
-
-    if (show_memory) {
-        if (ImGui::Begin("Memory", &show_memory)) {
-            static MemoryEditor mem_editor;
-            mem_editor.DrawContents(regs->mem.data(), regs->mem.size());
-        }
-        ImGui::End();
+    if (ImGui::BeginMenu("Emulation")) {
+      ImGui::MenuItem("Auto Play", nullptr, &auto_play);
+      ImGui::Separator();
+      if (ImGui::MenuItem("Play", nullptr, false, !interpreter->is_playing())) {
+        interpreter->play();
+      }
+      if (ImGui::MenuItem("Pause", nullptr, false, interpreter->is_playing())) {
+        interpreter->stop();
+      }
+      if (ImGui::MenuItem("Step", nullptr, false, !interpreter->is_playing())) {
+        interpreter->step();
+      }
+      if (ImGui::MenuItem("Reset", nullptr, false,
+                          !interpreter->is_playing())) {
+        interpreter->reset();
+        interpreter->load_rom_bytes(rom);
+      }
+      ImGui::EndMenu();
     }
+    if (ImGui::BeginMenu("View")) {
+      ImGui::MenuItem("Screen", nullptr, &show_screen);
+      ImGui::MenuItem("Memory", nullptr, &show_memory);
+      ImGui::MenuItem("Registers", nullptr, &show_registers);
+      ImGui::EndMenu();
+    }
+    ImGui::EndMainMenuBar();
+  }
 
-    rlImGuiEnd();
+  if (show_registers) {
+    if (ImGui::Begin("Registers", &show_registers)) {
+      ImGui::Text("ST: %04x (%05d)", regs->st, regs->st);
+      ImGui::Text("DT: %04x (%05d)", regs->dt, regs->dt);
+      ImGui::Text("I:  %04x (%05d)", regs->i, regs->i);
+      ImGui::Text("PC: %04x (%05d)", regs->pc, regs->pc);
+      ImGui::Text("SP: %04x (%05d)", regs->sp, regs->sp);
 
-    DrawFPS(10, GetScreenHeight() - 24);
-    EndDrawing();
+      static float volume = GetMasterVolume() * 100.0f;
+      if (ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f")) {
+        spdlog::debug("Set volume: {}", volume);
+        SetMasterVolume(volume / 100.0f);
+      }
 
-    return WindowShouldClose() || should_close;
+      static int sound_val;
+      if (ImGui::Button("Play Sound")) {
+        regs->st = sound_val;
+      }
+      ImGui::SameLine();
+      ImGui::SliderInt("##Sound Val", &sound_val, 1, 255);
+
+      if (ImGui::Button("Stop Sound")) {
+        regs->st = 0;
+      }
+
+      if (ImGui::Button("Open file")) {
+        open_load_rom_dialog();
+      }
+
+      static int random_pixel_count = 1;
+      if (ImGui::Button("Toggle Random Pixel")) {
+        for (int i = 0; i < random_pixel_count; i += 1) {
+          uint8_t x = random_byte() % kScreenWidth;
+          uint8_t y = random_byte() % kScreenHeight;
+          int idx = (y * kScreenWidth) + x;
+          regs->screen[idx] = !regs->screen[idx];
+        }
+      }
+      ImGui::SameLine();
+      ImGui::SliderInt("##Pixel Count", &random_pixel_count, 1, 100);
+
+      ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{16.0f, 8.0f});
+      ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+
+      if (!rom_loaded) {
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+      }
+
+      if (ImGui::Button(ICON_FA_PLAY)) {
+        interpreter->play();
+      }
+
+      if (!rom_loaded) {
+        ImGui::PopItemFlag();
+        ImGui::PopStyleColor();
+      }
+
+      ImGui::SameLine();
+      if (ImGui::Button(ICON_FA_PAUSE)) {
+        interpreter->stop();
+      }
+      ImGui::SameLine();
+      if (ImGui::Button(ICON_FA_FORWARD_STEP)) {
+        interpreter->step();
+      }
+      ImGui::SameLine();
+      if (ImGui::Button(ICON_FA_STOP)) {
+        interpreter->stop();
+        interpreter->reset();
+        interpreter->load_rom_bytes(rom);
+      }
+
+      ImGui::PopStyleVar();
+      ImGui::PopStyleVar();
+    }
+    ImGui::End();
+  }
+
+  if (show_screen) {
+    if (ImGui::Begin("Screen", &show_screen)) {
+      rlImGuiImageRenderTextureFit(&screen_texture, true);
+    }
+    ImGui::End();
+  }
+
+  if (show_memory) {
+    if (ImGui::Begin("Memory", &show_memory)) {
+      static MemoryEditor mem_editor;
+      mem_editor.DrawContents(regs->mem.data(), regs->mem.size());
+    }
+    ImGui::End();
+  }
+
+  static bool firstTime = true;
+  if (firstTime) {
+    firstTime = false;
+
+    ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
+    ImGui::DockBuilderAddNode(dockspace_id,
+                              ImGuiDockNodeFlags_DockSpace); // Add empty node
+    ImGui::DockBuilderSetNodeSize(dockspace_id,
+                                  {static_cast<float>(GetScreenWidth()),
+                                   static_cast<float>(GetScreenHeight())});
+
+    ImGuiID dockspace_main_id = dockspace_id;
+    ImGuiID right = ImGui::DockBuilderSplitNode(
+        dockspace_main_id, ImGuiDir_Right, 0.25f, nullptr, &dockspace_main_id);
+
+    ImGuiID right_bottom = ImGui::DockBuilderSplitNode(right, ImGuiDir_Down,
+                                                       0.5f, nullptr, &right);
+
+    ImGui::DockBuilderDockWindow("Memory", right);
+    ImGui::DockBuilderDockWindow("Registers", right_bottom);
+    ImGui::DockBuilderDockWindow("Screen", dockspace_main_id);
+    ImGui::DockBuilderFinish(dockspace_id);
+  }
+
+  rlImGuiEnd();
+
+  DrawFPS(10, GetScreenHeight() - 24);
+  EndDrawing();
+
+  return WindowShouldClose() || should_close;
 }
 
 void Interface::cleanup() {
-    rlImGuiShutdown();
-    UnloadAudioStream(stream);
-    CloseAudioDevice();
-    CloseWindow();
-    NFD_Quit();
+  rlImGuiShutdown();
+  UnloadAudioStream(stream);
+  CloseAudioDevice();
+  CloseWindow();
+  NFD_Quit();
 }
 
 void Interface::open_load_rom_dialog() {
-    nfdchar_t *rom_path;
-    nfdfilteritem_t filter_item[2] = { { "ROM", "rom" }, { "CHIP-8", "ch8" } };
-    nfdresult_t result = NFD_OpenDialog(&rom_path, filter_item, 2, NULL);
-    if (result == NFD_OKAY) {
-        spdlog::debug("Opened file: {}", rom_path);
+  nfdchar_t *rom_path;
+  nfdfilteritem_t filter_item[2] = {{"ROM", "rom"}, {"CHIP-8", "ch8"}};
+  nfdresult_t result = NFD_OpenDialog(&rom_path, filter_item, 2, NULL);
+  if (result == NFD_OKAY) {
+    spdlog::debug("Opened file: {}", rom_path);
 
-        load_rom(rom_path);
-        interpreter->load_rom_bytes(rom);
+    load_rom(rom_path);
 
-        NFD_FreePath(rom_path);
-    } else if (result == NFD_CANCEL) {
-        spdlog::debug("User pressed cancel.");
-    } else {
-        spdlog::debug("Error: {}\n", NFD_GetError());
-    }
+    NFD_FreePath(rom_path);
+  } else if (result == NFD_CANCEL) {
+    spdlog::debug("User pressed cancel.");
+  } else {
+    spdlog::debug("Error: {}\n", NFD_GetError());
+  }
 }
 
-void Interface::load_rom(const std::string& filename) {
-    std::ifstream in(filename, std::ios::binary);
-    rom = { std::istreambuf_iterator<char>(in), {} };
+void Interface::load_rom(const std::string &filename) {
+  rom_loaded = true;
+  std::filesystem::path rom_path = filename;
+  SetWindowTitle(
+      fmt::format("CHIP-8 - {}", rom_path.filename().string()).c_str());
+  std::ifstream in(filename, std::ios::binary);
+  rom = {std::istreambuf_iterator<char>(in), {}};
+  interpreter->load_rom_bytes(rom);
+
+  if (auto_play) {
+    interpreter->play();
+  }
 }
