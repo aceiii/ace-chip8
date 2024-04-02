@@ -21,6 +21,8 @@ public:
   void play();
   void stop();
 
+  bool is_playing() const;
+
 private:
   void update_timers();
   void stack_push(uint16_t val);
