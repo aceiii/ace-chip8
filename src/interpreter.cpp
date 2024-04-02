@@ -241,7 +241,7 @@ void Interpreter::step() {
                     // stores V0 to VX (inclusive) in memory starting at address I
                     {
                         uint8_t i = regs->i;
-                        for (int n = 0; n < x; n += 1) {
+                        for (int n = 0; n <= x; n += 1) {
                             regs->mem[i + n] = regs->v[n];
                         }
                     }
@@ -250,7 +250,7 @@ void Interpreter::step() {
                     // fills V0 to VX (inclusive) with values from memory starting at I
                     {
                         uint8_t i = regs->i;
-                        for (int n = 0; n < x; n += 1) {
+                        for (int n = 0; n <= x; n += 1) {
                             regs->v[n] = regs->mem[i + n];
                         }
                     }
