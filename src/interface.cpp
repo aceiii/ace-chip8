@@ -3,9 +3,12 @@
 
 #include <rlImGui.h>
 #include <imgui.h>
+#include <imgui_internal.h>
+#include <imgui_memory_editor/imgui_memory_editor.h>
 #include <spdlog/spdlog.h>
 #include <nfd.h>
 #include <fstream>
+
 
 constexpr int kMaxSamples = 512;
 constexpr int kMaxSamplesPerUpdate = 4096;
@@ -61,9 +64,11 @@ void Interface::initialize() {
     });
     PlayAudioStream(stream);
 
-    SetExitKey(KEY_ESCAPE);
+    // SetExitKey(KEY_ESCAPE);
     // SetTargetFPS(60);
     rlImGuiSetup(true);
+
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     screen_texture = LoadRenderTexture(kScreenWidth * kDefaultScreenPixelSize, kScreenHeight * kDefaultScreenPixelSize);
 }
@@ -85,106 +90,119 @@ bool Interface::update() {
     ClearBackground(RAYWHITE);
 
     rlImGuiBegin();
-    bool open = true;
-    ImGui::ShowDemoWindow(&open);
 
-    ImGui::Begin("CHIP-8");
-    {
-        ImGui::Text("ST: %04x (%05d)", regs->st, regs->st);
-        ImGui::Text("DT: %04x (%05d)", regs->dt, regs->dt);
-        ImGui::Text("I:  %04x (%05d)", regs->i, regs->i);
-        ImGui::Text("PC: %04x (%05d)", regs->pc, regs->pc);
-        ImGui::Text("SP: %04x (%05d)", regs->sp, regs->sp);
+    // bool open = true;
+    // ImGui::ShowDemoWindow(&open);
 
-        static float volume = GetMasterVolume() * 100.0f;
-        if (ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f")) {
-            spdlog::debug("Set volume: {}", volume);
-            SetMasterVolume(volume / 100.0f);
+    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+
+    if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+            // ShowExampleMenuFile();
+
+            if (ImGui::MenuItem("Load ROM")) {
+                open_load_rom_dialog();
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Quit", "Ctrl+Q")) {
+                should_close = true;
+            }
+            ImGui::EndMenu();
         }
-
-        static int sound_val;
-        if (ImGui::Button("Play Sound")) {
-            regs->st = sound_val;
+        if (ImGui::BeginMenu("View")) {
+            ImGui::MenuItem("Screen", nullptr, &show_screen);
+            ImGui::MenuItem("Memory", nullptr, &show_memory);
+            ImGui::MenuItem("Registers", nullptr, &show_registers);
+            ImGui::EndMenu();
         }
-        ImGui::SameLine();
-        ImGui::SliderInt("##Sound Val", &sound_val, 1, 255);
+        ImGui::EndMainMenuBar();
+    }
 
-        if (ImGui::Button("Stop Sound")) {
-            regs->st = 0;
-        }
+    if (show_registers) {
+        if (ImGui::Begin("Registers", &show_registers)) {
+            ImGui::Text("ST: %04x (%05d)", regs->st, regs->st);
+            ImGui::Text("DT: %04x (%05d)", regs->dt, regs->dt);
+            ImGui::Text("I:  %04x (%05d)", regs->i, regs->i);
+            ImGui::Text("PC: %04x (%05d)", regs->pc, regs->pc);
+            ImGui::Text("SP: %04x (%05d)", regs->sp, regs->sp);
 
-        if (ImGui::Button("Open file")) {
-            nfdchar_t *rom_path;
-            nfdfilteritem_t filter_item[2] = { { "ROM", "rom" }, { "CHIP-8", "ch8" } };
-            nfdresult_t result = NFD_OpenDialog(&rom_path, filter_item, 2, NULL);
-            if (result == NFD_OKAY) {
-                spdlog::debug("Opened file: {}", rom_path);
+            static float volume = GetMasterVolume() * 100.0f;
+            if (ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f")) {
+                spdlog::debug("Set volume: {}", volume);
+                SetMasterVolume(volume / 100.0f);
+            }
 
-                load_rom(rom_path);
+            static int sound_val;
+            if (ImGui::Button("Play Sound")) {
+                regs->st = sound_val;
+            }
+            ImGui::SameLine();
+            ImGui::SliderInt("##Sound Val", &sound_val, 1, 255);
+
+            if (ImGui::Button("Stop Sound")) {
+                regs->st = 0;
+            }
+
+            if (ImGui::Button("Open file")) {
+                open_load_rom_dialog();
+            }
+
+            static int random_pixel_count = 1;
+            if (ImGui::Button("Toggle Random Pixel")) {
+                for (int i = 0; i < random_pixel_count; i += 1) {
+                    uint8_t x = random_byte() % kScreenWidth;
+                    uint8_t y = random_byte() % kScreenHeight;
+                    int idx = (y * kScreenWidth) + x;
+                    regs->screen[idx] = !regs->screen[idx];
+                }
+            }
+            ImGui::SameLine();
+            ImGui::SliderInt("##Pixel Count", &random_pixel_count, 1, 100);
+
+            if (ImGui::Button("Play")) {
+                interpreter->play();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Stop")) {
+                interpreter->stop();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Step")) {
+                interpreter->step();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Reset")) {
+                interpreter->stop();
+                interpreter->reset();
                 interpreter->load_rom_bytes(rom);
-
-                NFD_FreePath(rom_path);
-            } else if (result == NFD_CANCEL) {
-                spdlog::debug("User pressed cancel.");
-            } else {
-                spdlog::debug("Error: {}\n", NFD_GetError());
             }
         }
-
-        static int random_pixel_count = 1;
-        if (ImGui::Button("Toggle Random Pixel")) {
-            for (int i = 0; i < random_pixel_count; i += 1) {
-                uint8_t x = random_byte() % kScreenWidth;
-                uint8_t y = random_byte() % kScreenHeight;
-                int idx = (y * kScreenWidth) + x;
-                regs->screen[idx] = !regs->screen[idx];
-            }
-        }
-        ImGui::SameLine();
-        ImGui::SliderInt("##Pixel Count", &random_pixel_count, 1, 100);
-
-        if (ImGui::Button("Play")) {
-            interpreter->play();
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Stop")) {
-            interpreter->stop();
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Step")) {
-            interpreter->step();
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Reset")) {
-            interpreter->stop();
-            interpreter->reset();
-            interpreter->load_rom_bytes(rom);
-        }
+        ImGui::End();
     }
-    ImGui::End();
 
-    ImGui::Begin("SCREEN");
-    {
-        rlImGuiImageRenderTextureFit(&screen_texture, true);
-    }
-    ImGui::End();
-
-    ImGui::Begin("MEMORY");
-    {
-        for (int i = 0; i < regs->mem.size(); i += 2) {
-            uint8_t hi = regs->mem[i];
-            uint8_t lo = regs->mem[i + 1];
-            ImGui::Text("%04x: %02x %02x", i, hi, lo);
+    if (show_screen) {
+        if (ImGui::Begin("Screen", &show_screen)) {
+            rlImGuiImageRenderTextureFit(&screen_texture, true);
         }
+        ImGui::End();
     }
-    ImGui::End();
+
+    if (show_memory) {
+        if (ImGui::Begin("Memory", &show_memory)) {
+            static MemoryEditor mem_editor;
+            mem_editor.DrawContents(regs->mem.data(), regs->mem.size());
+        }
+        ImGui::End();
+    }
 
     rlImGuiEnd();
 
-    DrawFPS(10, 10);
+    DrawFPS(10, GetScreenHeight() - 24);
     EndDrawing();
 
-    return WindowShouldClose();
+    return WindowShouldClose() || should_close;
 }
 
 void Interface::cleanup() {
@@ -193,6 +211,24 @@ void Interface::cleanup() {
     CloseAudioDevice();
     CloseWindow();
     NFD_Quit();
+}
+
+void Interface::open_load_rom_dialog() {
+    nfdchar_t *rom_path;
+    nfdfilteritem_t filter_item[2] = { { "ROM", "rom" }, { "CHIP-8", "ch8" } };
+    nfdresult_t result = NFD_OpenDialog(&rom_path, filter_item, 2, NULL);
+    if (result == NFD_OKAY) {
+        spdlog::debug("Opened file: {}", rom_path);
+
+        load_rom(rom_path);
+        interpreter->load_rom_bytes(rom);
+
+        NFD_FreePath(rom_path);
+    } else if (result == NFD_CANCEL) {
+        spdlog::debug("User pressed cancel.");
+    } else {
+        spdlog::debug("Error: {}\n", NFD_GetError());
+    }
 }
 
 void Interface::load_rom(const std::string& filename) {
