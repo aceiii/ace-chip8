@@ -68,7 +68,10 @@ void Interface::initialize() {
     // SetTargetFPS(60);
     rlImGuiSetup(true);
 
-    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    while (!IsWindowReady()) {}
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     screen_texture = LoadRenderTexture(kScreenWidth * kDefaultScreenPixelSize, kScreenHeight * kDefaultScreenPixelSize);
 }
@@ -161,23 +164,30 @@ bool Interface::update() {
             ImGui::SameLine();
             ImGui::SliderInt("##Pixel Count", &random_pixel_count, 1, 100);
 
-            if (ImGui::Button("Play")) {
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2 { 16.0f, 8.0f });
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+
+            if (ImGui::Button(ICON_FA_PLAY)) {
                 interpreter->play();
             }
+
             ImGui::SameLine();
-            if (ImGui::Button("Stop")) {
+            if (ImGui::Button(ICON_FA_PAUSE)) {
                 interpreter->stop();
             }
             ImGui::SameLine();
-            if (ImGui::Button("Step")) {
+            if (ImGui::Button(ICON_FA_FORWARD_STEP)) {
                 interpreter->step();
             }
             ImGui::SameLine();
-            if (ImGui::Button("Reset")) {
+            if (ImGui::Button(ICON_FA_STOP)) {
                 interpreter->stop();
                 interpreter->reset();
                 interpreter->load_rom_bytes(rom);
             }
+
+            ImGui::PopStyleVar();
+            ImGui::PopStyleVar();
         }
         ImGui::End();
     }

@@ -3,6 +3,7 @@
 #include "interpreter.h"
 
 #include <raylib.h>
+#include <imgui.h>
 #include <memory>
 
 class Interface {
@@ -20,6 +21,9 @@ private:
     Interpreter* interpreter;
     std::shared_ptr<registers> regs;
     RenderTexture2D screen_texture;
+
+    ImFont* font_default;
+    ImFont* font_icons;
 
     std::vector<uint8_t> rom;
 
