@@ -21,6 +21,7 @@ set(ARGPARSE_BUILD_TESTS OFF)
 
 include(cmake/raylib.cmake)
 include(cmake/rlimgui.cmake)
+include(cmake/imgui_club.cmake)
 
 add_subdirectory(external/spdlog)
 add_subdirectory(external/argparse)

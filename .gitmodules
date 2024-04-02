@@ -25,3 +25,6 @@
 [submodule "external/nativefiledialog-extended"]
 	path = external/nativefiledialog-extended
 	url = https://github.com/btzy/nativefiledialog-extended.git
+[submodule "external/imgui_club"]
+	path = external/imgui_club
+	url = https://github.com/ocornut/imgui_club.git
