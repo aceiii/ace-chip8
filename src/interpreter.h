@@ -1,41 +1,41 @@
 #pragma once
 
-#include "timer.h"
 #include "registers.h"
+#include "timer.h"
 
-#include <tl/optional.hpp>
 #include <memory>
+#include <optional>
 
 class Interpreter {
 public:
-    Interpreter(std::shared_ptr<registers> regs);
+  Interpreter(std::shared_ptr<registers> regs);
 
-    void initialize();
-    void update();
-    void cleanup();
+  void initialize();
+  void update();
+  void cleanup();
 
-    void load_rom_bytes(const std::vector<uint8_t>& bytes);
+  void load_rom_bytes(const std::vector<uint8_t> &bytes);
 
-    void reset();
-    void step();
-    void play();
-    void stop();
+  void reset();
+  void step();
+  void play();
+  void stop();
 
 private:
-    void update_timers();
-    void stack_push(uint16_t val);
-    uint16_t stack_pop();
-    void screen_clear();
-    void screen_draw_sprite(uint8_t x, uint8_t y, uint8_t n);
-    void screen_flip_pixel_at(uint8_t x, uint8_t y);
-    tl::optional<uint8_t> get_pressed_key();
-    bool is_key_pressed(uint8_t key);
-    void init_font_sprites();
-    uint16_t get_font_sprite_addr(uint8_t c);
+  void update_timers();
+  void stack_push(uint16_t val);
+  uint16_t stack_pop();
+  void screen_clear();
+  void screen_draw_sprite(uint8_t x, uint8_t y, uint8_t n);
+  void screen_flip_pixel_at(uint8_t x, uint8_t y);
+  std::optional<uint8_t> get_pressed_key();
+  bool is_key_pressed(uint8_t key);
+  void init_font_sprites();
+  uint16_t get_font_sprite_addr(uint8_t c);
 
-    Timer timer;
-    double last_tick = 0;
-    bool playing = false;
+  Timer timer;
+  double last_tick = 0;
+  bool playing = false;
 
-    std::shared_ptr<registers> regs;
+  std::shared_ptr<registers> regs;
 };
