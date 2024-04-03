@@ -20,6 +20,7 @@ private:
   void load_rom(const std::string &string);
 
   void render_main_menu();
+  void reset_windows();
 
   Interpreter *interpreter;
   std::shared_ptr<registers> regs;
@@ -30,6 +31,7 @@ private:
 
   std::vector<uint8_t> rom;
 
+  bool init_dock = true;
   bool should_close = false;
   bool show_demo = false;
   bool show_fps = false;

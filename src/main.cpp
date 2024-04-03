@@ -48,12 +48,9 @@ auto main(int argc, char* argv[]) -> int {
     interpreter.initialize();
     interface.initialize();
 
-    while (true) {
-        interpreter.update();
-        if (interface.update()) {
-            break;
-        }
-    }
+    do {
+      interpreter.update();
+    } while (!interface.update());
 
     interface.cleanup();
     interpreter.cleanup();

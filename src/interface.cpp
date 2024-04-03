@@ -114,7 +114,9 @@ bool Interface::update() {
 
   int dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
-  static bool init_once = ([=] () {
+  if (init_dock) {
+    init_dock = false;
+
     ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
     ImGui::DockBuilderAddNode(dockspace_id,
                               ImGuiDockNodeFlags_DockSpace); // Add empty node
@@ -133,9 +135,7 @@ bool Interface::update() {
     ImGui::DockBuilderDockWindow("Registers", right_bottom);
     ImGui::DockBuilderDockWindow("Screen", dockspace_main_id);
     ImGui::DockBuilderFinish(dockspace_id);
-
-    return true;
-  })();
+  }
 
   render_main_menu();
 
@@ -290,10 +290,23 @@ void Interface::render_main_menu() {
       ImGui::Separator();
       ImGui::MenuItem("Show FPS", nullptr, &show_fps);
       ImGui::MenuItem("ImGui Demo", nullptr, &show_demo);
+      ImGui::Separator();
+      if (ImGui::MenuItem("Reset All Windows")) {
+        reset_windows();
+      }
       ImGui::EndMenu();
     }
     ImGui::EndMainMenuBar();
   }
+}
+
+void Interface::reset_windows() {
+  show_demo = false;
+  show_fps = false;
+  show_memory = true;
+  show_registers = true;
+  show_screen = true;
+  init_dock = true;
 }
 
 void Interface::cleanup() {
