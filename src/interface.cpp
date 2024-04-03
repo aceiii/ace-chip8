@@ -1,10 +1,19 @@
 #include "interface.h"
 #include "random.h"
+#include "spdlog/common.h"
+#include "spdlog/details/log_msg.h"
+#include "spdlog/logger.h"
+#include "spdlog/pattern_formatter.h"
+#include "spdlog/sinks/base_sink.h"
+#include "spdlog/sinks/callback_sink.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 
 #include <filesystem>
 #include <fstream>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <memory>
+#include <mutex>
 #include <nfd.h>
 #include <rlImGui.h>
 #include <spdlog/spdlog.h>
@@ -82,6 +91,28 @@ void Interface::initialize() {
                                      kScreenHeight * kDefaultScreenPixelSize);
 
   mem_editor.Cols = 8;
+
+  auto level = spdlog::get_level();
+
+  auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+  auto formatter = std::make_shared<spdlog::pattern_formatter>();
+  auto callback_sink = std::make_shared<spdlog::sinks::callback_sink_mt>([=](const spdlog::details::log_msg &msg) {
+    spdlog::memory_buf_t formatted;
+    formatter->format(msg, formatted);
+
+    std::string formatted_string(formatted.begin(), formatted.size());
+    app_log.add_log(formatted_string);
+  });
+
+  std::vector<spdlog::sink_ptr> sinks;
+  sinks.push_back(console_sink);
+  sinks.push_back(callback_sink);
+
+  auto logger = std::make_shared<spdlog::logger>("", sinks.begin(), sinks.end());
+  logger->set_level(level);
+
+  spdlog::set_default_logger(logger);
+  spdlog::info("Initialized interface");
 }
 
 bool Interface::update() {
@@ -128,6 +159,8 @@ bool Interface::update() {
                                    static_cast<float>(GetScreenHeight())});
 
     ImGuiID dockspace_main_id = dockspace_id;
+    ImGuiID bottom = ImGui::DockBuilderSplitNode(dockspace_main_id, ImGuiDir_Down, 0.2f, nullptr, &dockspace_main_id);
+
     ImGuiID right = ImGui::DockBuilderSplitNode(
         dockspace_main_id, ImGuiDir_Right, 0.28f, nullptr, &dockspace_main_id);
 
@@ -137,6 +170,7 @@ bool Interface::update() {
     ImGui::DockBuilderDockWindow("Memory", right);
     ImGui::DockBuilderDockWindow("Registers", right_bottom);
     ImGui::DockBuilderDockWindow("Screen", dockspace_main_id);
+    ImGui::DockBuilderDockWindow("Logs", bottom);
     ImGui::DockBuilderFinish(dockspace_id);
   }
 
@@ -235,6 +269,13 @@ bool Interface::update() {
   if (show_memory) {
     if (ImGui::Begin("Memory", &show_memory)) {
       mem_editor.DrawContents(regs->mem.data(), regs->mem.size());
+    }
+    ImGui::End();
+  }
+
+  if (show_logs) {
+    if (ImGui::Begin("Logs", &show_logs)) {
+      app_log.draw();
     }
     ImGui::End();
   }

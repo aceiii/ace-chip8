@@ -14,6 +14,7 @@ set(SOURCE_FILES
     src/interface.cpp
     src/timer.cpp
     src/random.cpp
+    src/applog.cpp
 )
 
 set(EXPECTED_BUILD_TESTS OFF)

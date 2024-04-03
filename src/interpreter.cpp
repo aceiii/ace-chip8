@@ -15,6 +15,8 @@ void Interpreter::initialize()
 {
   timer.tick();
   reset();
+
+  spdlog::info("Initialized interpreter");
 }
 
 void Interpreter::update()

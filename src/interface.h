@@ -1,6 +1,7 @@
 #pragma once
 
 #include "interpreter.h"
+#include "applog.h"
 
 #include <imgui.h>
 #include <imgui_memory_editor/imgui_memory_editor.h>
@@ -27,6 +28,7 @@ private:
   std::shared_ptr<registers> regs;
   RenderTexture2D screen_texture;
   MemoryEditor mem_editor;
+  AppLog app_log;
 
   ImFont *font_default;
   ImFont *font_icons;
@@ -40,4 +42,5 @@ private:
   bool show_screen = true;
   bool show_memory = true;
   bool show_registers = true;
+  bool show_logs = true;
 };
