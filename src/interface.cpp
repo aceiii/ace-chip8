@@ -40,6 +40,8 @@ void Interface::initialize() {
   int width = 1200;
   int height = 800;
 
+  SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+
   InitWindow(width, height, "CHIP-8");
   InitAudioDevice();
 
