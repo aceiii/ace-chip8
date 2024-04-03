@@ -11,25 +11,30 @@ const int kRomStartIndex = 0x200;
 
 Interpreter::Interpreter(std::shared_ptr<registers> regs) : regs(regs) {}
 
-void Interpreter::initialize() {
+void Interpreter::initialize()
+{
   timer.tick();
   reset();
 }
 
-void Interpreter::update() {
+void Interpreter::update()
+{
   update_timers();
-  if (playing) {
+  if (playing)
+  {
     step();
   }
 }
 
 void Interpreter::cleanup() {}
 
-void Interpreter::load_rom_bytes(const std::vector<uint8_t> &bytes) {
+void Interpreter::load_rom_bytes(const std::vector<uint8_t> &bytes)
+{
   std::copy(bytes.begin(), bytes.end(), regs->mem.begin() + kRomStartIndex);
 }
 
-void Interpreter::reset() {
+void Interpreter::reset()
+{
   regs->reset();
 
   regs->pc = 0x200;
@@ -42,7 +47,8 @@ void Interpreter::stop() { playing = false; }
 
 bool Interpreter::is_playing() const { return playing; }
 
-void Interpreter::step() {
+void Interpreter::step()
+{
   uint8_t instr_hi = regs->mem[regs->pc];
   uint8_t instr_lo = regs->mem[regs->pc + 1];
 
@@ -56,15 +62,21 @@ void Interpreter::step() {
   uint8_t nn = instr_lo;
   uint16_t nnn = (instr_lo | (instr_hi << 8)) & 0xfff;
 
-  switch (first) {
+  switch (first)
+  {
   case 0x0:
-    if (instr == 0x00e0) {
+    if (instr == 0x00e0)
+    {
       // clear screen
       screen_clear();
-    } else if (instr == 0x00ee) {
+    }
+    else if (instr == 0x00ee)
+    {
       // returns from subroutine
       regs->pc = stack_pop();
-    } else {
+    }
+    else
+    {
       // call machine routine at NNN
       // unimplemented
     }
@@ -80,19 +92,22 @@ void Interpreter::step() {
     break;
   case 0x3:
     // skips next instruction if VX == NN
-    if (regs->v[x] == nn) {
+    if (regs->v[x] == nn)
+    {
       regs->pc += 2;
     }
     break;
   case 0x4:
     // skips next instruction if VX != NN
-    if (regs->v[x] != nn) {
+    if (regs->v[x] != nn)
+    {
       regs->pc += 2;
     }
     break;
   case 0x5:
     // skips next instruction if VX == VY
-    if (regs->v[x] == regs->v[y]) {
+    if (regs->v[x] == regs->v[y])
+    {
       regs->pc += 2;
     }
     break;
@@ -105,7 +120,8 @@ void Interpreter::step() {
     regs->v[x] += nn;
     break;
   case 0x8:
-    switch (n) {
+    switch (n)
+    {
     case 0x0:
       // sets VX to VY
       regs->v[x] = regs->v[y];
@@ -154,7 +170,8 @@ void Interpreter::step() {
     break;
   case 0x9:
     // skips next instruction if VX != VY
-    if (regs->v[x] != regs->v[y]) {
+    if (regs->v[x] != regs->v[y])
+    {
       regs->pc += 2;
     }
     break;
@@ -176,23 +193,28 @@ void Interpreter::step() {
     screen_draw_sprite(regs->v[x], regs->v[y], n);
     break;
   case 0xe:
-    switch (nn) {
+    switch (nn)
+    {
     case 0x9e:
       // skips next instruction if key stored in VX is pressed
-      if (is_key_pressed(regs->v[x])) {
+      if (is_key_pressed(regs->v[x]))
+      {
         regs->pc += 2;
       }
       break;
     case 0xa1:
       // skips next instruction if key stored in VX is not pressed
-      if (!is_key_pressed(regs->v[x])) {
+      if (!is_key_pressed(regs->v[x]))
+      {
         regs->pc += 2;
       }
       break;
     }
     break;
-  case 0xf: {
-    switch (nn) {
+  case 0xf:
+  {
+    switch (nn)
+    {
     case 0x07:
       // sets VX to delay timer
       regs->v[x] = regs->dt;
@@ -201,9 +223,12 @@ void Interpreter::step() {
       // wait for keypress, store in VX
       {
         auto key = get_pressed_key();
-        if (!key.has_value()) {
+        if (!key.has_value())
+        {
           regs->pc -= 2;
-        } else {
+        }
+        else
+        {
           regs->v[x] = key.value();
         }
       }
@@ -227,7 +252,7 @@ void Interpreter::step() {
     case 0x33:
       // stores BCD repr of VX at address I
       {
-        uint8_t i = regs->i;
+        int i = regs->i;
         uint8_t val = regs->v[x];
         regs->mem[i] = val / 100;
         regs->mem[i + 1] = (val / 10) % 10;
@@ -236,20 +261,16 @@ void Interpreter::step() {
       break;
     case 0x55:
       // stores V0 to VX (inclusive) in memory starting at address I
+      for (int n = 0, i = regs->i; n <= x; i++, n++)
       {
-        uint8_t i = regs->i;
-        for (int n = 0; n <= x; n += 1) {
-          regs->mem[i + n] = regs->v[n];
-        }
+        regs->mem[i] = regs->v[n];
       }
       break;
     case 0x65:
       // fills V0 to VX (inclusive) with values from memory starting at I
+      for (int n = 0, i = regs->i; n <= x; n++, i++)
       {
-        uint8_t i = regs->i;
-        for (int n = 0; n <= x; n += 1) {
-          regs->v[n] = regs->mem[i + n];
-        }
+        regs->v[n] = regs->mem[i];
       }
       break;
     }
@@ -257,13 +278,17 @@ void Interpreter::step() {
   }
 }
 
-void Interpreter::update_timers() {
+void Interpreter::update_timers()
+{
   last_tick += timer.tick();
-  while (last_tick > kTimerFrequency) {
-    if (regs->dt > 0) {
+  while (last_tick > kTimerFrequency)
+  {
+    if (regs->dt > 0)
+    {
       regs->dt -= 1;
     }
-    if (regs->st > 0) {
+    if (regs->st > 0)
+    {
       regs->st -= 1;
     }
 
@@ -275,9 +300,12 @@ void Interpreter::stack_push(uint16_t val) { regs->stack[regs->sp++] = val; }
 
 uint16_t Interpreter::stack_pop() { return regs->stack[--regs->sp]; }
 
-std::optional<uint8_t> Interpreter::get_pressed_key() {
-  for (int key = 0; key < regs->kbd.size(); key += 1) {
-    if (regs->kbd[key]) {
+std::optional<uint8_t> Interpreter::get_pressed_key()
+{
+  for (int key = 0; key < regs->kbd.size(); key += 1)
+  {
+    if (regs->kbd[key])
+    {
       return key;
     }
   }
@@ -286,27 +314,33 @@ std::optional<uint8_t> Interpreter::get_pressed_key() {
 
 bool Interpreter::is_key_pressed(uint8_t key) { return regs->kbd[key]; }
 
-void Interpreter::screen_clear() {
-  for (int i = 0; i < regs->screen.size(); i += 1) {
+void Interpreter::screen_clear()
+{
+  for (int i = 0; i < regs->screen.size(); i += 1)
+  {
     regs->screen[i] = false;
   }
 }
 
-void Interpreter::screen_draw_sprite(uint8_t x, uint8_t y, uint8_t n) {
+void Interpreter::screen_draw_sprite(int x, int y, int n)
+{
   x = x % kScreenWidth;
   y = y % kScreenHeight;
 
   regs->v[0xf] = 0;
 
   uint16_t start = regs->i;
-  for (int j = 0; j < n; j += 1) {
+  for (int j = 0; j < n; j += 1)
+  {
     uint16_t i = start + j;
     uint16_t sx = x + 8;
     uint16_t sy = y + j;
     uint8_t row = regs->mem[i];
 
-    for (int b = 0; b < 8; b += 1) {
-      if (row & 1) {
+    for (int b = 0; b < 8; b += 1)
+    {
+      if (row & 1)
+      {
         screen_flip_pixel_at(sx, sy);
       }
 
@@ -316,8 +350,10 @@ void Interpreter::screen_draw_sprite(uint8_t x, uint8_t y, uint8_t n) {
   }
 }
 
-void Interpreter::screen_flip_pixel_at(uint8_t x, uint8_t y) {
-  if (x >= kScreenWidth || y >= kScreenHeight) {
+void Interpreter::screen_flip_pixel_at(int x, int y)
+{
+  if (x < 0 || x >= kScreenWidth || y < 0 || y >= kScreenHeight)
+  {
     return;
   }
 
@@ -325,11 +361,14 @@ void Interpreter::screen_flip_pixel_at(uint8_t x, uint8_t y) {
   regs->screen[idx] = !regs->screen[idx];
 }
 
-void Interpreter::init_font_sprites() {
+void Interpreter::init_font_sprites()
+{
   uint16_t idx = kFontStartIndex;
 
-  auto load_sprite = [&](std::array<uint8_t, 5> bytes) {
-    for (int i = 0; i < 5; i += 1) {
+  auto load_sprite = [&](std::array<uint8_t, 5> bytes)
+  {
+    for (int i = 0; i < 5; i += 1)
+    {
       regs->mem[idx++] = bytes[i];
     }
   };
@@ -383,6 +422,7 @@ void Interpreter::init_font_sprites() {
   load_sprite({0xf0, 0x80, 0xf0, 0x80, 0x80});
 }
 
-uint16_t Interpreter::get_font_sprite_addr(uint8_t c) {
+uint16_t Interpreter::get_font_sprite_addr(uint8_t c)
+{
   return regs->mem[kFontStartIndex + (c * 5)];
 }

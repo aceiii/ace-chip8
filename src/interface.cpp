@@ -5,7 +5,6 @@
 #include <fstream>
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <imgui_memory_editor/imgui_memory_editor.h>
 #include <nfd.h>
 #include <rlImGui.h>
 #include <spdlog/spdlog.h>
@@ -79,6 +78,8 @@ void Interface::initialize() {
 
   screen_texture = LoadRenderTexture(kScreenWidth * kDefaultScreenPixelSize,
                                      kScreenHeight * kDefaultScreenPixelSize);
+
+  mem_editor.Cols = 8;
 }
 
 bool Interface::update() {
@@ -126,7 +127,7 @@ bool Interface::update() {
 
     ImGuiID dockspace_main_id = dockspace_id;
     ImGuiID right = ImGui::DockBuilderSplitNode(
-        dockspace_main_id, ImGuiDir_Right, 0.25f, nullptr, &dockspace_main_id);
+        dockspace_main_id, ImGuiDir_Right, 0.28f, nullptr, &dockspace_main_id);
 
     ImGuiID right_bottom = ImGui::DockBuilderSplitNode(right, ImGuiDir_Down,
                                                        0.5f, nullptr, &right);
@@ -231,7 +232,6 @@ bool Interface::update() {
 
   if (show_memory) {
     if (ImGui::Begin("Memory", &show_memory)) {
-      static MemoryEditor mem_editor;
       mem_editor.DrawContents(regs->mem.data(), regs->mem.size());
     }
     ImGui::End();

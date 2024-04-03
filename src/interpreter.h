@@ -28,8 +28,8 @@ private:
   void stack_push(uint16_t val);
   uint16_t stack_pop();
   void screen_clear();
-  void screen_draw_sprite(uint8_t x, uint8_t y, uint8_t n);
-  void screen_flip_pixel_at(uint8_t x, uint8_t y);
+  void screen_draw_sprite(int x, int y, int n);
+  void screen_flip_pixel_at(int x, int y);
   std::optional<uint8_t> get_pressed_key();
   bool is_key_pressed(uint8_t key);
   void init_font_sprites();

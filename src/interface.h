@@ -3,6 +3,7 @@
 #include "interpreter.h"
 
 #include <imgui.h>
+#include <imgui_memory_editor/imgui_memory_editor.h>
 #include <memory>
 #include <raylib.h>
 #include <vector>
@@ -25,6 +26,7 @@ private:
   Interpreter *interpreter;
   std::shared_ptr<registers> regs;
   RenderTexture2D screen_texture;
+  MemoryEditor mem_editor;
 
   ImFont *font_default;
   ImFont *font_icons;
