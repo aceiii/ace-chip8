@@ -112,52 +112,35 @@ bool Interface::update() {
 
   rlImGuiBegin();
 
-  // bool open = true;
-  // ImGui::ShowDemoWindow(&open);
-
   int dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
-  if (ImGui::BeginMainMenuBar()) {
-    if (ImGui::BeginMenu("File")) {
-      // ShowExampleMenuFile();
+  static bool init_once = ([=] () {
+    ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
+    ImGui::DockBuilderAddNode(dockspace_id,
+                              ImGuiDockNodeFlags_DockSpace); // Add empty node
+    ImGui::DockBuilderSetNodeSize(dockspace_id,
+                                  {static_cast<float>(GetScreenWidth()),
+                                   static_cast<float>(GetScreenHeight())});
 
-      if (ImGui::MenuItem("Load ROM")) {
-        open_load_rom_dialog();
-      }
+    ImGuiID dockspace_main_id = dockspace_id;
+    ImGuiID right = ImGui::DockBuilderSplitNode(
+        dockspace_main_id, ImGuiDir_Right, 0.25f, nullptr, &dockspace_main_id);
 
-      ImGui::Separator();
+    ImGuiID right_bottom = ImGui::DockBuilderSplitNode(right, ImGuiDir_Down,
+                                                       0.5f, nullptr, &right);
 
-      if (ImGui::MenuItem("Quit", "Ctrl+Q")) {
-        should_close = true;
-      }
-      ImGui::EndMenu();
-    }
-    if (ImGui::BeginMenu("Emulation")) {
-      ImGui::MenuItem("Auto Play", nullptr, &auto_play);
-      ImGui::Separator();
-      if (ImGui::MenuItem("Play", nullptr, false, !interpreter->is_playing())) {
-        interpreter->play();
-      }
-      if (ImGui::MenuItem("Pause", nullptr, false, interpreter->is_playing())) {
-        interpreter->stop();
-      }
-      if (ImGui::MenuItem("Step", nullptr, false, !interpreter->is_playing())) {
-        interpreter->step();
-      }
-      if (ImGui::MenuItem("Reset", nullptr, false,
-                          !interpreter->is_playing())) {
-        interpreter->reset();
-        interpreter->load_rom_bytes(rom);
-      }
-      ImGui::EndMenu();
-    }
-    if (ImGui::BeginMenu("View")) {
-      ImGui::MenuItem("Screen", nullptr, &show_screen);
-      ImGui::MenuItem("Memory", nullptr, &show_memory);
-      ImGui::MenuItem("Registers", nullptr, &show_registers);
-      ImGui::EndMenu();
-    }
-    ImGui::EndMainMenuBar();
+    ImGui::DockBuilderDockWindow("Memory", right);
+    ImGui::DockBuilderDockWindow("Registers", right_bottom);
+    ImGui::DockBuilderDockWindow("Screen", dockspace_main_id);
+    ImGui::DockBuilderFinish(dockspace_id);
+
+    return true;
+  })();
+
+  render_main_menu();
+
+  if (show_demo) {
+    ImGui::ShowDemoWindow(&show_demo);
   }
 
   if (show_registers) {
@@ -254,36 +237,63 @@ bool Interface::update() {
     ImGui::End();
   }
 
-  static bool firstTime = true;
-  if (firstTime) {
-    firstTime = false;
-
-    ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
-    ImGui::DockBuilderAddNode(dockspace_id,
-                              ImGuiDockNodeFlags_DockSpace); // Add empty node
-    ImGui::DockBuilderSetNodeSize(dockspace_id,
-                                  {static_cast<float>(GetScreenWidth()),
-                                   static_cast<float>(GetScreenHeight())});
-
-    ImGuiID dockspace_main_id = dockspace_id;
-    ImGuiID right = ImGui::DockBuilderSplitNode(
-        dockspace_main_id, ImGuiDir_Right, 0.25f, nullptr, &dockspace_main_id);
-
-    ImGuiID right_bottom = ImGui::DockBuilderSplitNode(right, ImGuiDir_Down,
-                                                       0.5f, nullptr, &right);
-
-    ImGui::DockBuilderDockWindow("Memory", right);
-    ImGui::DockBuilderDockWindow("Registers", right_bottom);
-    ImGui::DockBuilderDockWindow("Screen", dockspace_main_id);
-    ImGui::DockBuilderFinish(dockspace_id);
-  }
-
   rlImGuiEnd();
 
-  DrawFPS(10, GetScreenHeight() - 24);
+  if (show_fps) {
+    DrawFPS(10, GetScreenHeight() - 24);
+  }
+
   EndDrawing();
 
   return WindowShouldClose() || should_close;
+}
+
+void Interface::render_main_menu() {
+  if (ImGui::BeginMainMenuBar()) {
+    if (ImGui::BeginMenu("File")) {
+      // ShowExampleMenuFile();
+
+      if (ImGui::MenuItem("Load ROM")) {
+        open_load_rom_dialog();
+      }
+
+      ImGui::Separator();
+
+      if (ImGui::MenuItem("Quit", "Ctrl+Q")) {
+        should_close = true;
+      }
+      ImGui::EndMenu();
+    }
+    if (ImGui::BeginMenu("Emulation")) {
+      ImGui::MenuItem("Auto Play", nullptr, &auto_play);
+      ImGui::Separator();
+      if (ImGui::MenuItem("Play", nullptr, false, !interpreter->is_playing())) {
+        interpreter->play();
+      }
+      if (ImGui::MenuItem("Pause", nullptr, false, interpreter->is_playing())) {
+        interpreter->stop();
+      }
+      if (ImGui::MenuItem("Step", nullptr, false, !interpreter->is_playing())) {
+        interpreter->step();
+      }
+      if (ImGui::MenuItem("Reset", nullptr, false,
+                          !interpreter->is_playing())) {
+        interpreter->reset();
+        interpreter->load_rom_bytes(rom);
+      }
+      ImGui::EndMenu();
+    }
+    if (ImGui::BeginMenu("View")) {
+      ImGui::MenuItem("Screen", nullptr, &show_screen);
+      ImGui::MenuItem("Memory", nullptr, &show_memory);
+      ImGui::MenuItem("Registers", nullptr, &show_registers);
+      ImGui::Separator();
+      ImGui::MenuItem("Show FPS", nullptr, &show_fps);
+      ImGui::MenuItem("ImGui Demo", nullptr, &show_demo);
+      ImGui::EndMenu();
+    }
+    ImGui::EndMainMenuBar();
+  }
 }
 
 void Interface::cleanup() {
