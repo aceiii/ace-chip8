@@ -6,3 +6,4 @@ main
 imgui.ini
 imgui_log.txt
 .cache/
+.vscode/
