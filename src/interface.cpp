@@ -60,7 +60,7 @@ void Interface::initialize() {
         continue;
       }
 
-      d[i] = static_cast<short>(64000.0f * square(sinf(2 * PI * sine_idx)));
+      d[i] = static_cast<short>(((1<<15)-1) * square(sinf(2 * PI * sine_idx)));
       sine_idx += incr;
       if (sine_idx > 1.0f)
         sine_idx -= 1.0f;
