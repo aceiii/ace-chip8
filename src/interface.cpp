@@ -251,7 +251,6 @@ bool Interface::update() {
 void Interface::render_main_menu() {
   if (ImGui::BeginMainMenuBar()) {
     if (ImGui::BeginMenu("File")) {
-      // ShowExampleMenuFile();
 
       if (ImGui::MenuItem("Load ROM")) {
         open_load_rom_dialog();
