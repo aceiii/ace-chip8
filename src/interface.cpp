@@ -50,7 +50,7 @@ void Interface::initialize() {
     const float frequency = 440.0f;
 
     float incr = frequency / float(kAudioSampleRate);
-    short *d = (short *)buffer;
+    short *d = static_cast<short*>(buffer);
 
     for (unsigned int i = 0; i < frames; i++) {
       if (!play_sound) {
