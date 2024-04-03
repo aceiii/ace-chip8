@@ -77,8 +77,7 @@ void Interface::initialize() {
   });
   PlayAudioStream(stream);
 
-  // SetExitKey(KEY_ESCAPE);
-  // SetTargetFPS(60);
+  SetExitKey(KEY_NULL);
   rlImGuiSetup(true);
 
   while (!IsWindowReady()) {
