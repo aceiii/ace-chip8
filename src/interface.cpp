@@ -341,6 +341,9 @@ void Interface::load_rom(const std::string &filename) {
       fmt::format("CHIP-8 - {}", rom_path.filename().string()).c_str());
   std::ifstream in(filename, std::ios::binary);
   rom = {std::istreambuf_iterator<char>(in), {}};
+
+  interpreter->stop();
+  interpreter->reset();
   interpreter->load_rom_bytes(rom);
 
   if (auto_play) {
