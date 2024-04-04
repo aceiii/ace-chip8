@@ -146,29 +146,38 @@ void Interpreter::step()
       // adds VY to VX, set VF to 1 if overflow else 0
       {
         uint16_t val = regs->v[x] + regs->v[y];
-        regs->v[0xf] = val >> 8;
         regs->v[x] = val & 0xff;
+        regs->v[0xf] = val >> 8;
       }
       break;
     case 0x5:
       // subtract VY from VX, set VF to 0 if underflow else 1
-      regs->v[0xf] = regs->v[x] >= regs->v[y] ? 1 : 0;
-      regs->v[x] -= regs->v[y];
+      {
+        uint8_t result = regs->v[x] >= regs->v[y] ? 1 : 0;
+        regs->v[x] -= regs->v[y];
+        regs->v[0xf] = result;
+      }
       break;
     case 0x6:
       // store LSB of VX in VF, right shift VX by 1
-      regs->v[0xf] = regs->v[x] & 0x1;
-      regs->v[x] >>= 1;
+      {
+        uint8_t lsb = regs->v[x] & 0x1;
+        regs->v[x] >>= 1;
+        regs->v[0xf] = lsb;
+      }
       break;
     case 0x7:
       // sets VX to VY - VX, set VF to 0 if underflow else 1
-      regs->v[0xf] = regs->v[y] >= regs->v[x] ? 1 : 0;
       regs->v[x] = regs->v[y] - regs->v[x];
+      regs->v[0xf] = regs->v[y] >= regs->v[x] ? 1 : 0;
       break;
     case 0xe:
       // store MSB of VX in VF, left shift VX by 1
-      regs->v[0xf] = regs->v[x] & 0x80;
-      regs->v[x] <<= 1;
+      {
+        uint8_t msb = (regs->v[x] & 0x8) >> 3;
+        regs->v[x] <<= 1;
+        regs->v[0xf] = msb;
+      }
       break;
     }
     break;
