@@ -174,7 +174,6 @@ bool Interface::update() {
       ImGui::Text("DT: %04x (%05d)", regs->dt, regs->dt);
       ImGui::Text("I:  %04x (%05d)", regs->i, regs->i);
       ImGui::Text("PC: %04x (%05d)", regs->pc, regs->pc);
-      ImGui::Text("SP: %04x (%05d)", regs->sp, regs->sp);
 
       static float volume = GetMasterVolume() * 100.0f;
       if (ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f")) {

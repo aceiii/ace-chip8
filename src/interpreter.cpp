@@ -1,11 +1,15 @@
 #include "interpreter.h"
 #include "random.h"
 
+#include <_types/_uint16_t.h>
+#include <_types/_uint8_t.h>
 #include <optional>
 #include <spdlog/spdlog.h>
 
 constexpr double kTimerFrequency = 1 / 60.0;
 
+const int kStackPtrIndex = 0x0;
+const int kStackStartIndex = 0x10;
 const int kFontStartIndex = 0x50;
 const int kRomStartIndex = 0x200;
 
@@ -309,9 +313,17 @@ void Interpreter::update_timers()
   }
 }
 
-void Interpreter::stack_push(uint16_t val) { regs->stack[regs->sp++] = val; }
+void Interpreter::stack_push(uint16_t val) {
+  uint8_t *sp = &regs->mem[kStackPtrIndex];
+  uint16_t *stack = reinterpret_cast<uint16_t*>(&regs->mem[kStackStartIndex]);
+  stack[(*sp)++] = val;
+}
 
-uint16_t Interpreter::stack_pop() { return regs->stack[--regs->sp]; }
+uint16_t Interpreter::stack_pop() {
+  uint8_t *sp = &regs->mem[kStackPtrIndex];
+  uint16_t *stack = reinterpret_cast<uint16_t*>(&regs->mem[kStackStartIndex]);
+  return stack[--(*sp)];
+}
 
 std::optional<uint8_t> Interpreter::get_pressed_key()
 {
