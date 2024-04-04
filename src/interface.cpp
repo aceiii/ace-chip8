@@ -351,6 +351,7 @@ void Interface::reset_windows() {
 }
 
 void Interface::cleanup() {
+  spdlog::info("Cleaning up interface");
   rlImGuiShutdown();
   UnloadAudioStream(stream);
   CloseAudioDevice();

@@ -45,8 +45,8 @@ auto main(int argc, char* argv[]) -> int {
     Interpreter interpreter(regs);
     Interface interface(regs, &interpreter);
 
-    interpreter.initialize();
     interface.initialize();
+    interpreter.initialize();
 
     do {
       interpreter.update();
@@ -54,6 +54,8 @@ auto main(int argc, char* argv[]) -> int {
 
     interface.cleanup();
     interpreter.cleanup();
+
+    spdlog::info("Exiting.");
 
     return 0;
 }

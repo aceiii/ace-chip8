@@ -28,7 +28,9 @@ void Interpreter::update()
   }
 }
 
-void Interpreter::cleanup() {}
+void Interpreter::cleanup() {
+  spdlog::info("Cleaning up interpreter");
+}
 
 void Interpreter::load_rom_bytes(const std::vector<uint8_t> &bytes)
 {
