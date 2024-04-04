@@ -2,6 +2,7 @@
 
 #include "interpreter.h"
 #include "applog.h"
+#include "screen.h"
 
 #include <imgui.h>
 #include <imgui_memory_editor/imgui_memory_editor.h>
@@ -26,9 +27,9 @@ private:
 
   Interpreter *interpreter;
   std::shared_ptr<registers> regs;
-  RenderTexture2D screen_texture;
   MemoryEditor mem_editor;
   AppLog app_log;
+  Screen screen;
 
   ImFont *font_default;
   ImFont *font_icons;

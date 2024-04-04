@@ -86,9 +86,6 @@ void Interface::initialize() {
   ImGuiIO &io = ImGui::GetIO();
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-  screen_texture = LoadRenderTexture(kScreenWidth * kDefaultScreenPixelSize,
-                                     kScreenHeight * kDefaultScreenPixelSize);
-
   mem_editor.Cols = 8;
 
   auto level = spdlog::get_level();
@@ -112,6 +109,8 @@ void Interface::initialize() {
 
   spdlog::set_default_logger(logger);
   spdlog::info("Initialized interface");
+
+  screen.initialize(kScreenWidth, kScreenHeight, kDefaultScreenPixelSize, regs->screen.data());
 }
 
 bool Interface::update() {
@@ -128,17 +127,7 @@ bool Interface::update() {
 
   play_sound = regs->st > 0;
 
-  BeginTextureMode(screen_texture);
-  for (int y = 0; y < kScreenHeight; y += 1) {
-    for (int x = 0; x < kScreenWidth; x += 1) {
-      int idx = (y * kScreenWidth) + x;
-      bool px = regs->screen[idx];
-      DrawRectangle(x * kDefaultScreenPixelSize, y * kDefaultScreenPixelSize,
-                    kDefaultScreenPixelSize, kDefaultScreenPixelSize,
-                    px ? RAYWHITE : BLACK);
-    }
-  }
-  EndTextureMode();
+  screen.update();
 
   BeginDrawing();
   ClearBackground(RAYWHITE);
@@ -260,7 +249,7 @@ bool Interface::update() {
 
   if (show_screen) {
     if (ImGui::Begin("Screen", &show_screen)) {
-      rlImGuiImageRenderTextureFit(&screen_texture, true);
+      screen.draw();
     }
     ImGui::End();
   }
