@@ -6,7 +6,8 @@
 #include <optional>
 #include <spdlog/spdlog.h>
 
-constexpr double kTimerFrequency = 1 / 60.0;
+const double kTimerFrequency = 1 / 60.0;
+const double kInstrFrequency = 1 / 540.0;
 
 const int kStackPtrIndex = 0x0;
 const int kStackStartIndex = 0x10;
@@ -17,7 +18,7 @@ Interpreter::Interpreter(std::shared_ptr<registers> regs) : regs(regs) {}
 
 void Interpreter::initialize()
 {
-  timer.tick();
+  timer.reset();
   reset();
 
   spdlog::info("Initialized interpreter");
@@ -25,10 +26,20 @@ void Interpreter::initialize()
 
 void Interpreter::update()
 {
-  update_timers();
-  if (playing)
-  {
-    step();
+  double dt = timer.duration();
+  timer.reset();
+
+  update_timers(dt);
+
+  if (playing) {
+    last_update += dt;
+
+    while (last_update > kInstrFrequency) {
+      step();
+      last_update -= kInstrFrequency;
+    }
+  } else {
+    last_update = 0;
   }
 }
 
@@ -296,9 +307,10 @@ void Interpreter::step()
   }
 }
 
-void Interpreter::update_timers()
+void Interpreter::update_timers(double dt)
 {
-  last_tick += timer.tick();
+  last_tick += dt;
+
   while (last_tick > kTimerFrequency)
   {
     if (regs->dt > 0)

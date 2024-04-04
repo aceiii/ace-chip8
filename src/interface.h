@@ -44,4 +44,5 @@ private:
   bool show_memory = true;
   bool show_registers = true;
   bool show_logs = true;
+  bool show_emulation = true;
 };

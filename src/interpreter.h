@@ -24,7 +24,7 @@ public:
   bool is_playing() const;
 
 private:
-  void update_timers();
+  void update_timers(double dt);
   void stack_push(uint16_t val);
   uint16_t stack_pop();
   void screen_clear();
@@ -37,6 +37,7 @@ private:
 
   Timer timer;
   double last_tick = 0;
+  double last_update = 0;
   bool playing = false;
 
   std::shared_ptr<registers> regs;

@@ -155,10 +155,13 @@ bool Interface::update() {
     ImGuiID right_bottom = ImGui::DockBuilderSplitNode(right, ImGuiDir_Down,
                                                        0.5f, nullptr, &right);
 
+    ImGuiID main_bottom = ImGui::DockBuilderSplitNode(dockspace_main_id, ImGuiDir_Down, 0.1f, nullptr, &dockspace_main_id);
+
     ImGui::DockBuilderDockWindow("Memory", right);
     ImGui::DockBuilderDockWindow("Registers", right_bottom);
     ImGui::DockBuilderDockWindow("Screen", dockspace_main_id);
     ImGui::DockBuilderDockWindow("Logs", bottom);
+    ImGui::DockBuilderDockWindow("Emulation", main_bottom);
     ImGui::DockBuilderFinish(dockspace_id);
   }
 
@@ -208,36 +211,81 @@ bool Interface::update() {
       ImGui::SameLine();
       ImGui::SliderInt("##Pixel Count", &random_pixel_count, 1, 100);
 
+    }
+    ImGui::End();
+  }
+
+  if (show_emulation) {
+    if (ImGui::Begin("Emulation", &show_emulation)) {
+      auto push_disabled_btn_flags = [] () {
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+      };
+
+      auto pop_disabled_btn_flags = [] () {
+        ImGui::PopItemFlag();
+        ImGui::PopStyleColor();
+      };
+
+      ImVec2 size = ImGui::GetWindowSize();
+      float button_width = ImGui::CalcTextSize(ICON_FA_PLAY).x;
+      float buttons_width = (button_width + 32 + 5) * 4;
+
+      ImGui::SameLine((size.x - buttons_width) / 2);
+
       ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{16.0f, 8.0f});
       ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
 
-      if (!rom_loaded) {
-        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+      bool is_playing = interpreter->is_playing();
+
+      if (!rom_loaded || is_playing) {
+        push_disabled_btn_flags();
       }
 
       if (ImGui::Button(ICON_FA_PLAY)) {
         interpreter->play();
       }
 
-      if (!rom_loaded) {
-        ImGui::PopItemFlag();
-        ImGui::PopStyleColor();
+      if (!rom_loaded || is_playing) {
+        pop_disabled_btn_flags();
       }
 
       ImGui::SameLine();
+
+      if (!rom_loaded || !is_playing) {
+        push_disabled_btn_flags();
+      }
+
       if (ImGui::Button(ICON_FA_PAUSE)) {
         interpreter->stop();
       }
+
+      if (!rom_loaded || !is_playing) {
+        pop_disabled_btn_flags();
+      }
+
       ImGui::SameLine();
+
+      if (!rom_loaded) {
+        push_disabled_btn_flags();
+      }
+
+      ImGui::PushButtonRepeat(true);
       if (ImGui::Button(ICON_FA_FORWARD_STEP)) {
         interpreter->step();
       }
+      ImGui::PopButtonRepeat();
+
       ImGui::SameLine();
+
       if (ImGui::Button(ICON_FA_STOP)) {
         interpreter->stop();
         interpreter->reset();
         interpreter->load_rom_bytes(rom);
+      }
+
+      if (!rom_loaded) {
+        pop_disabled_btn_flags();
       }
 
       ImGui::PopStyleVar();
@@ -296,23 +344,24 @@ void Interface::render_main_menu() {
     if (ImGui::BeginMenu("Emulation")) {
       ImGui::MenuItem("Auto Play", nullptr, &auto_play);
       ImGui::Separator();
-      if (ImGui::MenuItem("Play", nullptr, false, !interpreter->is_playing())) {
+      bool is_playing = interpreter->is_playing();
+      if (ImGui::MenuItem("Play", nullptr, false, !is_playing)) {
         interpreter->play();
       }
-      if (ImGui::MenuItem("Pause", nullptr, false, interpreter->is_playing())) {
+      if (ImGui::MenuItem("Pause", nullptr, false, is_playing)) {
         interpreter->stop();
       }
-      if (ImGui::MenuItem("Step", nullptr, false, !interpreter->is_playing())) {
+      if (ImGui::MenuItem("Step", nullptr, false, !is_playing)) {
         interpreter->step();
       }
-      if (ImGui::MenuItem("Reset", nullptr, false,
-                          !interpreter->is_playing())) {
+      if (ImGui::MenuItem("Reset", nullptr, false, !is_playing)) {
         interpreter->reset();
         interpreter->load_rom_bytes(rom);
       }
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("View")) {
+      ImGui::MenuItem("Emulation", nullptr, &show_emulation);
       ImGui::MenuItem("Screen", nullptr, &show_screen);
       ImGui::MenuItem("Memory", nullptr, &show_memory);
       ImGui::MenuItem("Registers", nullptr, &show_registers);
