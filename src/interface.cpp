@@ -18,6 +18,8 @@
 #include <rlImGui.h>
 #include <spdlog/spdlog.h>
 
+namespace fs = std::filesystem;
+
 constexpr int kMaxSamples = 512;
 constexpr int kMaxSamplesPerUpdate = 4096;
 constexpr int kAudioSampleRate = 44100;
@@ -120,7 +122,21 @@ bool Interface::update() {
     FilePathList droppedFiles = LoadDroppedFiles();
     if (droppedFiles.count > 0) {
       spdlog::info("Dropped file: {}", droppedFiles.paths[0]);
-      load_rom(droppedFiles.paths[0]);
+
+      fs::path filepath(droppedFiles.paths[0]);
+
+      if (fs::is_symlink(filepath)) {
+        filepath.replace_filename(fs::read_symlink(filepath));
+        filepath = fs::absolute(filepath);
+      }
+
+      const std::string ext = filepath.extension().string();
+
+      if (fs::is_regular_file(filepath) && (ext == ".ch8" || ext == ".c8")) {
+        load_rom(filepath.string());
+      } else {
+        spdlog::warn("Invalid file type: {}", filepath.string());
+      }
     }
 
     UnloadDroppedFiles(droppedFiles);
@@ -497,11 +513,20 @@ void Interface::open_load_rom_dialog() {
 }
 
 void Interface::load_rom(const std::string &filename) {
+  spdlog::debug("Loading rom: {}", filename);
+
   rom_loaded = true;
-  std::filesystem::path rom_path = filename;
+  fs::path rom_path = filename;
   SetWindowTitle(
       fmt::format("CHIP-8 - {}", rom_path.filename().string()).c_str());
-  std::ifstream in(filename, std::ios::binary);
+  std::ifstream in(filename, std::ios::binary | std::ifstream::ate );
+  size_t pos = in.tellg();
+  if (pos > (kMemSize - kRomStartIndex)) {
+    spdlog::error("File exceeds memory size, NOT loading rom");
+    return;
+  }
+
+  in.seekg(0, in.beg);
   rom = {std::istreambuf_iterator<char>(in), {}};
 
   interpreter->stop();
