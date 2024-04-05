@@ -30,6 +30,7 @@ add_subdirectory(external/argparse)
 add_subdirectory(external/expected)
 add_subdirectory(external/magic_enum)
 add_subdirectory(external/nativefiledialog-extended)
+add_subdirectory(external/tomlplusplus)
 
 add_executable(${EXE_NAME} ${SOURCE_FILES})
 
@@ -40,5 +41,6 @@ target_link_libraries(${EXE_NAME} magic_enum)
 # target_link_libraries(${EXE_NAME} raylib)
 target_link_libraries(${EXE_NAME} rlimgui)
 target_link_libraries(${EXE_NAME} nfd)
+target_link_libraries(${EXE_NAME} tomlplusplus::tomlplusplus)
 
 target_include_directories(${EXE_NAME} PUBLIC external/rlimgui)
