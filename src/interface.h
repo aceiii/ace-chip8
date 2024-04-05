@@ -3,6 +3,7 @@
 #include "interpreter.h"
 #include "applog.h"
 #include "screen.h"
+#include "assembly.h"
 
 #include <imgui.h>
 #include <imgui_memory_editor/imgui_memory_editor.h>
@@ -30,6 +31,7 @@ private:
   MemoryEditor mem_editor;
   AppLog app_log;
   Screen screen;
+  AssemblyViewer assembly;
 
   ImFont *font_default;
   ImFont *font_icons;
@@ -46,4 +48,5 @@ private:
   bool show_logs = true;
   bool show_emulation = true;
   bool show_misc = false;
+  bool show_instructions = true;
 };

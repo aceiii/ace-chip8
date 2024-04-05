@@ -111,6 +111,7 @@ void Interface::initialize() {
   spdlog::info("Initialized interface");
 
   screen.initialize(kScreenWidth, kScreenHeight, kDefaultScreenPixelSize, regs->screen.data());
+  assembly.initialize(regs.get());
 }
 
 bool Interface::update() {
@@ -150,15 +151,18 @@ bool Interface::update() {
     ImGuiID bottom = ImGui::DockBuilderSplitNode(dockspace_main_id, ImGuiDir_Down, 0.2f, nullptr, &dockspace_main_id);
 
     ImGuiID right = ImGui::DockBuilderSplitNode(
-        dockspace_main_id, ImGuiDir_Right, 0.28f, nullptr, &dockspace_main_id);
+        dockspace_main_id, ImGuiDir_Right, 0.35f, nullptr, &dockspace_main_id);
 
-    ImGuiID right_bottom = ImGui::DockBuilderSplitNode(right, ImGuiDir_Down,
-                                                       0.5f, nullptr, &right);
+    ImGuiID center_right = ImGui::DockBuilderSplitNode(right, ImGuiDir_Left, 0.7, nullptr, &right);
+
+    ImGuiID center_right_bottom = ImGui::DockBuilderSplitNode(center_right, ImGuiDir_Down,
+                                                       0.5f, nullptr, &center_right);
 
     ImGuiID main_bottom = ImGui::DockBuilderSplitNode(dockspace_main_id, ImGuiDir_Down, 0.1f, nullptr, &dockspace_main_id);
 
-    ImGui::DockBuilderDockWindow("Memory", right);
-    ImGui::DockBuilderDockWindow("Registers", right_bottom);
+    ImGui::DockBuilderDockWindow("Instructions", right);
+    ImGui::DockBuilderDockWindow("Memory", center_right);
+    ImGui::DockBuilderDockWindow("Registers", center_right_bottom);
     ImGui::DockBuilderDockWindow("Screen", dockspace_main_id);
     ImGui::DockBuilderDockWindow("Logs", bottom);
     ImGui::DockBuilderDockWindow("Emulation", main_bottom);
@@ -173,7 +177,7 @@ bool Interface::update() {
 
   if (show_registers) {
     if (ImGui::Begin("Registers", &show_registers)) {
-      ImGui::BeginTable("registers", 4, ImGuiTableFlags_Borders);
+      ImGui::BeginTable("general_registers", 4, ImGuiTableFlags_Borders);
       {
 
         for (int y = 0; y < 4; y += 1) {
@@ -193,12 +197,58 @@ bool Interface::update() {
         }
       }
       ImGui::EndTable();
+
+      ImGui::BeginTable("specific_registers", 4, ImGuiTableFlags_Borders);
+      {
+        ImGui::TableNextRow();
+
+        ImGui::TableNextColumn();
+        {
+          ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5, 0.5, 0.5, 1.0));
+          ImGui::Text("PC");
+          ImGui::PopStyleColor();
+
+          ImGui::Text("0x%02x", regs->pc);
+          ImGui::Text("%04d", regs->pc);
+        }
+
+        ImGui::TableNextColumn();
+        {
+          ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5, 0.5, 0.5, 1.0));
+          ImGui::Text("I");
+          ImGui::PopStyleColor();
+
+          ImGui::Text("0x%02x", regs->i);
+          ImGui::Text("%04d", regs->i);
+        }
+
+        ImGui::TableNextColumn();
+        {
+          ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5, 0.5, 0.5, 1.0));
+          ImGui::Text("DT");
+          ImGui::PopStyleColor();
+
+          ImGui::Text("0x%02x", regs->dt);
+          ImGui::Text("%04d", regs->dt);
+        }
+
+        ImGui::TableNextColumn();
+        {
+          ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5, 0.5, 0.5, 1.0));
+          ImGui::Text("ST");
+          ImGui::PopStyleColor();
+
+          ImGui::Text("0x%02x", regs->st);
+          ImGui::Text("%04d", regs->st);
+        }
+      }
+      ImGui::EndTable();
     }
     ImGui::End();
   }
 
   if (show_misc) {
-    if (ImGui::Begin("Miscellaneous")) {
+    if (ImGui::Begin("Miscellaneous", &show_misc)) {
       ImGui::Text("ST: %04x (%05d)", regs->st, regs->st);
       ImGui::Text("DT: %04x (%05d)", regs->dt, regs->dt);
       ImGui::Text("I:  %04x (%05d)", regs->i, regs->i);
@@ -314,8 +364,7 @@ bool Interface::update() {
         pop_disabled_btn_flags();
       }
 
-      ImGui::PopStyleVar();
-      ImGui::PopStyleVar();
+      ImGui::PopStyleVar(2);
     }
     ImGui::End();
   }
@@ -330,6 +379,13 @@ bool Interface::update() {
   if (show_memory) {
     if (ImGui::Begin("Memory", &show_memory)) {
       mem_editor.DrawContents(regs->mem.data(), regs->mem.size());
+    }
+    ImGui::End();
+  }
+
+  if (show_instructions) {
+    if (ImGui::Begin("Instructions", &show_instructions)) {
+      assembly.draw();
     }
     ImGui::End();
   }

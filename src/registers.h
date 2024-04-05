@@ -3,13 +3,18 @@
 #include <algorithm>
 #include <array>
 
-constexpr int kMemSize = 4096;
-constexpr int kGeneralRegisterCount = 16;
-constexpr int kKeyboardSize = 16;
+const int kMemSize = 4096;
+const int kGeneralRegisterCount = 16;
+const int kKeyboardSize = 16;
 
-constexpr int kScreenWidth = 64;
-constexpr int kScreenHeight = 32;
-constexpr int kScreenPixelCount = kScreenWidth * kScreenHeight;
+const int kStackPtrIndex = 0x0;
+const int kStackStartIndex = 0x10;
+const int kFontStartIndex = 0x50;
+const int kRomStartIndex = 0x200;
+
+const int kScreenWidth = 64;
+const int kScreenHeight = 32;
+const int kScreenPixelCount = kScreenWidth * kScreenHeight;
 
 struct registers {
   uint16_t pc = 0;

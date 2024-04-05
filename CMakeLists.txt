@@ -16,6 +16,7 @@ set(SOURCE_FILES
     src/random.cpp
     src/applog.cpp
     src/screen.cpp
+    src/assembly.cpp
 )
 
 set(EXPECTED_BUILD_TESTS OFF)

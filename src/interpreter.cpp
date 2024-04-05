@@ -9,11 +9,6 @@
 const double kTimerFrequency = 1 / 60.0;
 const double kInstrFrequency = 1 / 1200.0;
 
-const int kStackPtrIndex = 0x0;
-const int kStackStartIndex = 0x10;
-const int kFontStartIndex = 0x50;
-const int kRomStartIndex = 0x200;
-
 Interpreter::Interpreter(std::shared_ptr<registers> regs) : regs(regs) {}
 
 void Interpreter::initialize()
