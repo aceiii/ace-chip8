@@ -45,4 +45,5 @@ private:
   bool show_registers = true;
   bool show_logs = true;
   bool show_emulation = true;
+  bool show_misc = false;
 };

@@ -7,7 +7,7 @@
 #include <spdlog/spdlog.h>
 
 const double kTimerFrequency = 1 / 60.0;
-const double kInstrFrequency = 1 / 540.0;
+const double kInstrFrequency = 1 / 1200.0;
 
 const int kStackPtrIndex = 0x0;
 const int kStackStartIndex = 0x10;
@@ -60,9 +60,15 @@ void Interpreter::reset()
   init_font_sprites();
 }
 
-void Interpreter::play() { playing = true; }
+void Interpreter::play() {
+  spdlog::debug("Playing.");
+  playing = true;
+}
 
-void Interpreter::stop() { playing = false; }
+void Interpreter::stop() {
+  spdlog::debug("Stopping.");
+  playing = false;
+}
 
 bool Interpreter::is_playing() const { return playing; }
 
@@ -327,12 +333,14 @@ void Interpreter::update_timers(double dt)
 }
 
 void Interpreter::stack_push(uint16_t val) {
+  spdlog::trace("Push stack: {}", val);
   uint8_t *sp = &regs->mem[kStackPtrIndex];
   uint16_t *stack = reinterpret_cast<uint16_t*>(&regs->mem[kStackStartIndex]);
   stack[(*sp)++] = val;
 }
 
 uint16_t Interpreter::stack_pop() {
+  spdlog::trace("Pop stack");
   uint8_t *sp = &regs->mem[kStackPtrIndex];
   uint16_t *stack = reinterpret_cast<uint16_t*>(&regs->mem[kStackStartIndex]);
   return stack[--(*sp)];
@@ -354,6 +362,7 @@ bool Interpreter::is_key_pressed(uint8_t key) { return regs->kbd[key]; }
 
 void Interpreter::screen_clear()
 {
+  spdlog::trace("Clear screen");
   for (int i = 0; i < regs->screen.size(); i += 1)
   {
     regs->screen[i] = false;

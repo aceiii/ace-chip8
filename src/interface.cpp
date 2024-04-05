@@ -173,6 +173,32 @@ bool Interface::update() {
 
   if (show_registers) {
     if (ImGui::Begin("Registers", &show_registers)) {
+      ImGui::BeginTable("registers", 4, ImGuiTableFlags_Borders);
+      {
+
+        for (int y = 0; y < 4; y += 1) {
+          ImGui::TableNextRow();
+          for (int x = 0; x < 4; x += 1) {
+            int idx = (y * 4) + x;
+
+            ImGui::TableNextColumn();
+
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5, 0.5, 0.5, 1.0));
+            ImGui::Text("v%X", idx);
+            ImGui::PopStyleColor();
+
+            ImGui::Text("0x%02x", regs->v[idx]);
+            ImGui::Text("%04d", regs->v[idx]);
+          }
+        }
+      }
+      ImGui::EndTable();
+    }
+    ImGui::End();
+  }
+
+  if (show_misc) {
+    if (ImGui::Begin("Miscellaneous")) {
       ImGui::Text("ST: %04x (%05d)", regs->st, regs->st);
       ImGui::Text("DT: %04x (%05d)", regs->dt, regs->dt);
       ImGui::Text("I:  %04x (%05d)", regs->i, regs->i);
@@ -365,6 +391,7 @@ void Interface::render_main_menu() {
       ImGui::MenuItem("Screen", nullptr, &show_screen);
       ImGui::MenuItem("Memory", nullptr, &show_memory);
       ImGui::MenuItem("Registers", nullptr, &show_registers);
+      ImGui::MenuItem("Miscellaneous", nullptr, &show_misc);
       ImGui::Separator();
       ImGui::MenuItem("Show FPS", nullptr, &show_fps);
       ImGui::MenuItem("ImGui Demo", nullptr, &show_demo);
