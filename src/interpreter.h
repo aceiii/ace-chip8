@@ -6,9 +6,15 @@
 #include <memory>
 #include <optional>
 
+const double kTimerFrequency = 1.0 / 60.0;
+const int kDefaultPlayingUpdateRate = 1200;
+
 class Interpreter {
 public:
-  Interpreter(std::shared_ptr<registers> regs);
+  int update_play_rate = kDefaultPlayingUpdateRate;
+
+public:
+  explicit Interpreter(std::shared_ptr<registers> regs);
 
   void initialize();
   void update();

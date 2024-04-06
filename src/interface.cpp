@@ -309,6 +309,8 @@ bool Interface::update() {
 
   if (show_emulation) {
     if (ImGui::Begin("Emulation", &show_emulation)) {
+      ImGuiStyle &style = ImGui::GetStyle();
+
       auto push_disabled_btn_flags = [] () {
         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
@@ -320,12 +322,15 @@ bool Interface::update() {
       };
 
       ImVec2 size = ImGui::GetWindowSize();
+      ImVec2 frame_padding {16.0f, 8.0f};
+      float num_buttons = 4.0f;
       float button_width = ImGui::CalcTextSize(ICON_FA_PLAY).x;
-      float buttons_width = (button_width + 32 + 5) * 4;
+      float buttons_width = (button_width + (2 * frame_padding.x) + style.ItemSpacing.x) * num_buttons;
+      float slider_width = 192.0f;
 
-      ImGui::SameLine((size.x - buttons_width) / 2);
+      ImGui::SameLine((size.x - buttons_width - slider_width) / 2);
 
-      ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{16.0f, 8.0f});
+      ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, frame_padding);
       ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
 
       bool is_playing = interpreter->is_playing();
@@ -381,6 +386,12 @@ bool Interface::update() {
       }
 
       ImGui::PopStyleVar(2);
+
+      ImGui::SameLine();
+
+      ImGui::SetNextItemWidth(slider_width);
+      ImGui::SetCursorPosY(32);
+      ImGui::SliderInt("IPS", &interpreter->update_play_rate, 10, 3200);
     }
     ImGui::End();
   }

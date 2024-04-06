@@ -4,13 +4,11 @@
 #include <_types/_uint16_t.h>
 #include <_types/_uint8_t.h>
 #include <optional>
-#include <utility>
 #include <spdlog/spdlog.h>
+#include <utility>
 
-const double kTimerFrequency = 1 / 60.0;
-const double kInstrFrequency = 1 / 2400.0;
-
-Interpreter::Interpreter(std::shared_ptr<registers> regs) : regs(std::move(regs)) {}
+Interpreter::Interpreter(std::shared_ptr<registers> regs)
+    : regs(std::move(regs)) {}
 
 void Interpreter::initialize() {
   timer.reset();
@@ -20,6 +18,8 @@ void Interpreter::initialize() {
 }
 
 void Interpreter::update() {
+  double update_frequency = 1.0 / static_cast<double>(update_play_rate);
+
   double dt = timer.duration();
   timer.reset();
 
@@ -28,9 +28,9 @@ void Interpreter::update() {
   if (playing) {
     last_update += dt;
 
-    while (last_update > kInstrFrequency) {
+    while (last_update > update_frequency) {
       step();
-      last_update -= kInstrFrequency;
+      last_update -= update_frequency;
     }
   } else {
     last_update = 0;
@@ -180,6 +180,8 @@ void Interpreter::step() {
         regs->v[0xf] = msb;
       }
       break;
+    default:
+      spdlog::warn("Invalid instruction: {:x}", instr);
     }
     break;
   case 0x9:
@@ -219,6 +221,8 @@ void Interpreter::step() {
         regs->pc += 2;
       }
       break;
+    default:
+      spdlog::warn("Invalid instruction: {:x}", instr);
     }
     break;
   case 0xf: {
@@ -276,8 +280,12 @@ void Interpreter::step() {
         regs->v[n] = regs->mem[i];
       }
       break;
+    default:
+      spdlog::warn("Invalid instruction: {:x}", instr);
     }
   } break;
+  default:
+    spdlog::warn("Invalid instruction: {:x}", instr);
   }
 }
 
@@ -299,14 +307,15 @@ void Interpreter::update_timers(double dt) {
 void Interpreter::stack_push(uint16_t val) {
   spdlog::trace("Push stack: {}", val);
   uint8_t *sp = &regs->mem[kStackPtrIndex];
-  uint16_t *stack = reinterpret_cast<uint16_t *>(&regs->mem[kStackStartIndex]);
+  auto stack = reinterpret_cast<uint16_t *>(&regs->mem[kStackStartIndex]);
   stack[(*sp)++] = val;
+
 }
 
 uint16_t Interpreter::stack_pop() {
   spdlog::trace("Pop stack");
   uint8_t *sp = &regs->mem[kStackPtrIndex];
-  uint16_t *stack = reinterpret_cast<uint16_t *>(&regs->mem[kStackStartIndex]);
+  auto stack = reinterpret_cast<uint16_t *>(&regs->mem[kStackStartIndex]);
   return stack[--(*sp)];
 }
 
