@@ -7,7 +7,7 @@ class AppLog {
 public:
   AppLog();
 
-  void add_log(const std::string& string);
+  void add_log(const std::string &string);
   void clear();
   void draw();
 

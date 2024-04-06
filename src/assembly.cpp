@@ -1,44 +1,44 @@
 #include "assembly.h"
 
-#include <spdlog/spdlog.h>
 #include <cstdint>
 #include <imgui.h>
+#include <spdlog/spdlog.h>
 
 #ifdef _MSC_VER
-#define _PRISizeT   "I"
-#define ImSnprintf  _snprintf
+#define _PRISizeT "I"
+#define ImSnprintf _snprintf
 #else
-#define _PRISizeT   "z"
-#define ImSnprintf  snprintf
+#define _PRISizeT "z"
+#define ImSnprintf snprintf
 #endif
 
 void AssemblyViewer::initialize(const registers *regs_) {
-  spdlog::trace("Initialzing AssemblyViewer");
+  spdlog::trace("Initializing AssemblyViewer");
   regs = regs_;
 }
 
 void AssemblyViewer::draw() {
   if (ImGui::BeginPopup("Options")) {
-      ImGui::Checkbox("Auto-scroll", &auto_scroll);
-      ImGui::EndPopup();
+    ImGui::Checkbox("Auto-scroll", &auto_scroll);
+    ImGui::EndPopup();
   }
 
   if (ImGui::Button("Options")) {
     ImGui::OpenPopup("Options");
   }
 
-  if (ImGui::BeginChild("scrolling", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar))
-  {
+  if (ImGui::BeginChild("scrolling", ImVec2(0, 0), ImGuiChildFlags_None,
+                        ImGuiWindowFlags_HorizontalScrollbar)) {
     ImGuiStyle &style = ImGui::GetStyle();
 
-    const int line_total_count = regs->mem.size() / 2;
+    auto line_total_count = static_cast<int>(regs->mem.size() / 2);
     float line_height = ImGui::GetTextLineHeight();
 
     ImGuiListClipper clipper;
     clipper.Begin(line_total_count, line_height);
 
-    const char* format_address = "%0*" _PRISizeT "X: ";
-    const char* format_data = " %0*" _PRISizeT "X";
+    const char *format_address = "%0*" _PRISizeT "X: ";
+    const char *format_data = " %0*" _PRISizeT "X";
 
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -81,7 +81,7 @@ void AssemblyViewer::draw() {
     }
 
     if (auto_scroll) {
-      float scroll_y = line_height * (regs->pc >> 1);
+      float scroll_y = line_height * static_cast<float>(regs->pc >> 1);
       ImGui::SetScrollY(scroll_y);
     }
 
@@ -91,5 +91,5 @@ void AssemblyViewer::draw() {
 }
 
 void AssemblyViewer::cleanup() {
-  spdlog::trace("Initialzing AssemblyViewer");
+  spdlog::trace("Initializing AssemblyViewer");
 }

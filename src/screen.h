@@ -11,6 +11,6 @@ public:
 
 private:
   RenderTexture2D screen_texture;
-  const bool* pixels = nullptr;
+  const bool *pixels = nullptr;
   int screen_width = 0, screen_height = 0, pixel_size = 0;
 };

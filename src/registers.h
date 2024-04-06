@@ -21,10 +21,10 @@ struct registers {
   uint16_t i = 0;
   uint8_t dt = 0;
   uint8_t st = 0;
-  std::array<uint8_t, kGeneralRegisterCount> v;
-  std::array<uint8_t, kMemSize> mem;
-  std::array<bool, kKeyboardSize> kbd;
-  std::array<bool, kScreenPixelCount> screen;
+  std::array<uint8_t, kGeneralRegisterCount> v{0};
+  std::array<uint8_t, kMemSize> mem{0};
+  std::array<bool, kKeyboardSize> kbd{false};
+  std::array<bool, kScreenPixelCount> screen{false};
 
   inline void reset() {
     pc = 0;

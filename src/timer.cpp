@@ -6,7 +6,7 @@ using duration_type = duration<double>;
 Timer::Timer() : start(high_resolution_clock::now()) {}
 
 void Timer::reset() {
-  start = high_resolution_clock::now();;
+  start = high_resolution_clock::now();
 }
 
 double Timer::duration() {

@@ -43,7 +43,7 @@ float square(float val) {
 }
 
 Interface::Interface(std::shared_ptr<registers> regs, Interpreter *interpreter)
-    : interpreter{interpreter}, regs(regs) {}
+    : interpreter{interpreter}, regs(std::move(regs)) {}
 
 void Interface::initialize() {
   NFD_Init();
@@ -63,7 +63,7 @@ void Interface::initialize() {
     const float frequency = 440.0f;
 
     float incr = frequency / float(kAudioSampleRate);
-    short *d = static_cast<short*>(buffer);
+    auto d = static_cast<short*>(buffer);
 
     for (unsigned int i = 0; i < frames; i++) {
       if (!play_sound) {
@@ -151,7 +151,7 @@ bool Interface::update() {
 
   rlImGuiBegin();
 
-  int dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+  ImGuiID dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
   if (init_dock) {
     init_dock = false;

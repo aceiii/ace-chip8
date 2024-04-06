@@ -4,11 +4,11 @@
 
 class Timer {
 public:
-    Timer();
+  Timer();
 
-    void reset();
-    double duration();
+  void reset();
+  double duration();
 
 private:
-    std::chrono::high_resolution_clock::time_point start;
+  std::chrono::high_resolution_clock::time_point start;
 };

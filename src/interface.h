@@ -17,7 +17,7 @@ public:
 
   void initialize();
   bool update();
-  void cleanup();
+  static void cleanup();
 
 private:
   void open_load_rom_dialog();
@@ -32,9 +32,6 @@ private:
   AppLog app_log;
   Screen screen;
   AssemblyViewer assembly;
-
-  ImFont *font_default;
-  ImFont *font_icons;
 
   std::vector<uint8_t> rom;
 
