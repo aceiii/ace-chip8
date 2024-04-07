@@ -46,4 +46,5 @@ private:
   bool show_emulation = true;
   bool show_misc = false;
   bool show_instructions = true;
+  bool show_keyboard = true;
 };
