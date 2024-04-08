@@ -135,14 +135,17 @@ void Interpreter::step() {
       break;
     case 0x1:
       // sets VX to VX | VY
+      regs->v[0xf] = 0;
       regs->v[x] = regs->v[x] | regs->v[y];
       break;
     case 0x2:
       // sets VX to VX & VY
+      regs->v[0xf] = 0;
       regs->v[x] = regs->v[x] & regs->v[y];
       break;
     case 0x3:
       // sets VX to VX xor VY
+      regs->v[0xf] = 0;
       regs->v[x] = regs->v[x] xor regs->v[y];
       break;
     case 0x4:
@@ -164,6 +167,7 @@ void Interpreter::step() {
     case 0x6:
       // store LSB of VX in VF, right shift VX by 1
       {
+        regs->v[x] = regs->v[y];
         uint8_t lsb = regs->v[x] & 0x1;
         regs->v[x] >>= 1;
         regs->v[0xf] = lsb;
@@ -177,6 +181,7 @@ void Interpreter::step() {
     case 0xe:
       // store MSB of VX in VF, left shift VX by 1
       {
+        regs->v[x] = regs->v[y];
         uint8_t msb = (regs->v[x] & 0x8) >> 3;
         regs->v[x] <<= 1;
         regs->v[0xf] = msb;
@@ -240,6 +245,7 @@ void Interpreter::step() {
         if (!key.has_value()) {
           regs->pc -= 2;
         } else {
+          spdlog::debug("Key pressed: {}", key.value());
           regs->v[x] = key.value();
         }
       }
@@ -272,14 +278,18 @@ void Interpreter::step() {
       break;
     case 0x55:
       // stores V0 to VX (inclusive) in memory starting at address I
-      for (int n = 0, i = regs->i; n <= x; i++, n++) {
-        regs->mem[i] = regs->v[n];
+      for (int xn = 0, i = regs->i; xn <= x; i++, xn++) {
+        regs->mem[i] = regs->v[xn];
+        // classic chip-8 quirk:
+        regs->i += 1;
       }
       break;
     case 0x65:
       // fills V0 to VX (inclusive) with values from memory starting at I
-      for (int n = 0, i = regs->i; n <= x; n++, i++) {
-        regs->v[n] = regs->mem[i];
+      for (int xn = 0, i = regs->i; xn <= x; xn++, i++) {
+        regs->v[xn] = regs->mem[i];
+        // classic chip-8 quirk:
+        regs->i += 1;
       }
       break;
     default:
@@ -326,6 +336,8 @@ void Interpreter::update_keyboard() {
     if (key_down[key] && !regs->kbd[key]) {
       key_released[key] = true;
       spdlog::debug("Key pressed: 0x{:02x}", key);
+    } else {
+      key_released[key] = false;
     }
   }
   key_down = regs->kbd;
@@ -355,15 +367,17 @@ void Interpreter::screen_draw_sprite(int x, int y, int n) {
 
   regs->v[0xf] = 0;
 
-  uint16_t start = regs->i;
   for (int j = 0; j < n; j += 1) {
-    uint16_t i = start + j;
-    uint16_t sx = x + 8;
-    uint16_t sy = y + j;
-    uint8_t row = regs->mem[i];
+    int sx = x + 8;
+    int sy = y + j;
+    uint8_t row = regs->mem[regs->i + j];
+
+    if (sy >= kScreenHeight) {
+      break;
+    }
 
     for (int b = 0; b < 8; b += 1) {
-      if (row & 1) {
+      if (row & 1 && sx < kScreenWidth) {
         screen_flip_pixel_at(sx, sy);
       }
 
@@ -374,12 +388,11 @@ void Interpreter::screen_draw_sprite(int x, int y, int n) {
 }
 
 void Interpreter::screen_flip_pixel_at(int x, int y) {
-  if (x < 0 || x >= kScreenWidth || y < 0 || y >= kScreenHeight) {
-    return;
-  }
-
   int idx = (y * kScreenWidth) + x;
   regs->screen[idx] = !regs->screen[idx];
+  if (!regs->screen[idx]) {
+    regs->v[0xf] = 1;
+  }
 }
 
 void Interpreter::init_font_sprites() {

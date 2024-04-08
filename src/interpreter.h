@@ -48,6 +48,6 @@ private:
   bool playing = false;
 
   std::shared_ptr<registers> regs;
-  std::array<bool, kKeyboardSize> key_down;
-  std::array<bool, kKeyboardSize> key_released;
+  std::array<bool, kKeyboardSize> key_down{false};
+  std::array<bool, kKeyboardSize> key_released{false};
 };
