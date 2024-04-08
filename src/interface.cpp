@@ -63,7 +63,7 @@ void Interface::initialize() {
     const float frequency = 440.0f;
 
     float incr = frequency / float(kAudioSampleRate);
-    auto d = static_cast<short*>(buffer);
+    auto d = static_cast<short *>(buffer);
 
     for (unsigned int i = 0; i < frames; i++) {
       if (!play_sound) {
@@ -71,7 +71,8 @@ void Interface::initialize() {
         continue;
       }
 
-      d[i] = static_cast<short>(((1<<15)-1) * square(sinf(2 * PI * sine_idx)));
+      d[i] =
+          static_cast<short>(((1 << 15) - 1) * square(sinf(2 * PI * sine_idx)));
       sine_idx += incr;
       if (sine_idx > 1.0f)
         sine_idx -= 1.0f;
@@ -94,25 +95,28 @@ void Interface::initialize() {
 
   auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
   auto formatter = std::make_shared<spdlog::pattern_formatter>();
-  auto callback_sink = std::make_shared<spdlog::sinks::callback_sink_mt>([=](const spdlog::details::log_msg &msg) {
-    spdlog::memory_buf_t formatted;
-    formatter->format(msg, formatted);
+  auto callback_sink = std::make_shared<spdlog::sinks::callback_sink_mt>(
+      [=](const spdlog::details::log_msg &msg) {
+        spdlog::memory_buf_t formatted;
+        formatter->format(msg, formatted);
 
-    std::string formatted_string(formatted.begin(), formatted.size());
-    app_log.add_log(formatted_string);
-  });
+        std::string formatted_string(formatted.begin(), formatted.size());
+        app_log.add_log(formatted_string);
+      });
 
   std::vector<spdlog::sink_ptr> sinks;
   sinks.push_back(console_sink);
   sinks.push_back(callback_sink);
 
-  auto logger = std::make_shared<spdlog::logger>("", sinks.begin(), sinks.end());
+  auto logger =
+      std::make_shared<spdlog::logger>("", sinks.begin(), sinks.end());
   logger->set_level(level);
 
   spdlog::set_default_logger(logger);
   spdlog::info("Initialized interface");
 
-  screen.initialize(kScreenWidth, kScreenHeight, kDefaultScreenPixelSize, regs->screen.data());
+  screen.initialize(kScreenWidth, kScreenHeight, kDefaultScreenPixelSize,
+                    regs->screen.data());
   assembly.initialize(regs.get());
 }
 
@@ -164,17 +168,20 @@ bool Interface::update() {
                                    static_cast<float>(GetScreenHeight())});
 
     ImGuiID dockspace_main_id = dockspace_id;
-    ImGuiID bottom = ImGui::DockBuilderSplitNode(dockspace_main_id, ImGuiDir_Down, 0.2f, nullptr, &dockspace_main_id);
+    ImGuiID bottom = ImGui::DockBuilderSplitNode(
+        dockspace_main_id, ImGuiDir_Down, 0.2f, nullptr, &dockspace_main_id);
 
     ImGuiID right = ImGui::DockBuilderSplitNode(
-        dockspace_main_id, ImGuiDir_Right, 0.35f, nullptr, &dockspace_main_id);
+        dockspace_main_id, ImGuiDir_Right, 0.5f, nullptr, &dockspace_main_id);
 
-    ImGuiID center_right = ImGui::DockBuilderSplitNode(right, ImGuiDir_Left, 0.7, nullptr, &right);
+    ImGuiID center_right = ImGui::DockBuilderSplitNode(right, ImGuiDir_Left,
+                                                       0.60, nullptr, &right);
 
-    ImGuiID center_right_bottom = ImGui::DockBuilderSplitNode(center_right, ImGuiDir_Down,
-                                                       0.5f, nullptr, &center_right);
+    ImGuiID center_right_bottom = ImGui::DockBuilderSplitNode(
+        center_right, ImGuiDir_Down, 0.5f, nullptr, &center_right);
 
-    ImGuiID main_bottom = ImGui::DockBuilderSplitNode(dockspace_main_id, ImGuiDir_Down, 0.1f, nullptr, &dockspace_main_id);
+    ImGuiID main_bottom = ImGui::DockBuilderSplitNode(
+        dockspace_main_id, ImGuiDir_Down, 0.1f, nullptr, &dockspace_main_id);
 
     ImGui::DockBuilderDockWindow("Instructions", right);
     ImGui::DockBuilderDockWindow("Memory", center_right);
@@ -302,7 +309,6 @@ bool Interface::update() {
       }
       ImGui::SameLine();
       ImGui::SliderInt("##Pixel Count", &random_pixel_count, 1, 100);
-
     }
     ImGui::End();
   }
@@ -311,21 +317,23 @@ bool Interface::update() {
     if (ImGui::Begin("Emulation", &show_emulation)) {
       ImGuiStyle &style = ImGui::GetStyle();
 
-      auto push_disabled_btn_flags = [] () {
+      auto push_disabled_btn_flags = []() {
         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
       };
 
-      auto pop_disabled_btn_flags = [] () {
+      auto pop_disabled_btn_flags = []() {
         ImGui::PopItemFlag();
         ImGui::PopStyleColor();
       };
 
       ImVec2 size = ImGui::GetWindowSize();
-      ImVec2 frame_padding {16.0f, 8.0f};
+      ImVec2 frame_padding{16.0f, 8.0f};
       float num_buttons = 4.0f;
       float button_width = ImGui::CalcTextSize(ICON_FA_PLAY).x;
-      float buttons_width = (button_width + (2 * frame_padding.x) + style.ItemSpacing.x) * num_buttons;
+      float buttons_width =
+          (button_width + (2 * frame_padding.x) + style.ItemSpacing.x) *
+          num_buttons;
       float slider_width = 192.0f;
 
       ImGui::SameLine((size.x - buttons_width - slider_width) / 2);
@@ -369,6 +377,7 @@ bool Interface::update() {
 
       ImGui::PushButtonRepeat(true);
       if (ImGui::Button(ICON_FA_FORWARD_STEP)) {
+        spdlog::debug("Single step");
         interpreter->step();
       }
       ImGui::PopButtonRepeat();
@@ -428,6 +437,7 @@ bool Interface::update() {
     if (ImGui::Begin("Keyboard", &show_keyboard)) {
       ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(24, 18));
       ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4);
+      ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 2));
 
       ImGui::Button("1");
       ImGui::SameLine();
@@ -461,7 +471,7 @@ bool Interface::update() {
       ImGui::SameLine();
       ImGui::Button("F");
 
-      ImGui::PopStyleVar(2);
+      ImGui::PopStyleVar(3);
     }
     ImGui::End();
   }
@@ -573,7 +583,7 @@ void Interface::load_rom(const std::string &filename) {
   fs::path rom_path = filename;
   SetWindowTitle(
       fmt::format("CHIP-8 - {}", rom_path.filename().string()).c_str());
-  std::ifstream in(filename, std::ios::binary | std::ifstream::ate );
+  std::ifstream in(filename, std::ios::binary | std::ifstream::ate);
   size_t pos = in.tellg();
   if (pos > (kMemSize - kRomStartIndex)) {
     spdlog::error("File exceeds memory size, NOT loading rom");

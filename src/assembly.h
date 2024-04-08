@@ -9,6 +9,7 @@ public:
   void cleanup();
 
 private:
+  std::string disassembled_instruction(uint16_t instr) const;
   bool auto_scroll = true;
 
   const registers *regs = nullptr;
