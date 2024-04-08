@@ -4,6 +4,7 @@
 #include "applog.h"
 #include "screen.h"
 #include "assembly.h"
+#include "keyboard.h"
 
 #include <imgui.h>
 #include <imgui_memory_editor/imgui_memory_editor.h>
@@ -32,6 +33,7 @@ private:
   AppLog app_log;
   Screen screen;
   AssemblyViewer assembly;
+  Keyboard keyboard;
 
   std::vector<uint8_t> rom;
 

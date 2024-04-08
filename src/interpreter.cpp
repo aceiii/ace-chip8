@@ -18,6 +18,8 @@ void Interpreter::initialize() {
 }
 
 void Interpreter::update() {
+  update_keyboard();
+
   double update_frequency = 1.0 / static_cast<double>(update_play_rate);
 
   double dt = timer.duration();
@@ -319,9 +321,19 @@ uint16_t Interpreter::stack_pop() {
   return stack[--(*sp)];
 }
 
-std::optional<uint8_t> Interpreter::get_pressed_key() {
+void Interpreter::update_keyboard() {
   for (int key = 0; key < regs->kbd.size(); key += 1) {
-    if (regs->kbd[key]) {
+    if (key_down[key] && !regs->kbd[key]) {
+      key_released[key] = true;
+      spdlog::debug("Key pressed: 0x{:02x}", key);
+    }
+  }
+  key_down = regs->kbd;
+}
+
+std::optional<uint8_t> Interpreter::get_pressed_key() {
+  for (int key = 0; key < key_released.size(); key += 1) {
+    if (key_released[key]) {
       return key;
     }
   }

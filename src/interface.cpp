@@ -123,6 +123,8 @@ void Interface::initialize() {
   screen.initialize(kScreenWidth, kScreenHeight, kDefaultScreenPixelSize,
                     regs->screen.data());
   assembly.initialize(regs.get());
+
+  keyboard.initialize(regs);
 }
 
 bool Interface::update() {
@@ -150,6 +152,8 @@ bool Interface::update() {
 
     UnloadDroppedFiles(droppedFiles);
   }
+
+  keyboard.update();
 
   play_sound = regs->st > 0;
 
@@ -440,43 +444,7 @@ bool Interface::update() {
 
   if (show_keyboard) {
     if (ImGui::Begin("Keyboard", &show_keyboard)) {
-      ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(24, 18));
-      ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4);
-      ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 2));
-
-      ImGui::Button("1");
-      ImGui::SameLine();
-      ImGui::Button("2");
-      ImGui::SameLine();
-      ImGui::Button("3");
-      ImGui::SameLine();
-      ImGui::Button("C");
-
-      ImGui::Button("4");
-      ImGui::SameLine();
-      ImGui::Button("5");
-      ImGui::SameLine();
-      ImGui::Button("6");
-      ImGui::SameLine();
-      ImGui::Button("D");
-
-      ImGui::Button("7");
-      ImGui::SameLine();
-      ImGui::Button("8");
-      ImGui::SameLine();
-      ImGui::Button("9");
-      ImGui::SameLine();
-      ImGui::Button("E");
-
-      ImGui::Button("A");
-      ImGui::SameLine();
-      ImGui::Button("0");
-      ImGui::SameLine();
-      ImGui::Button("B");
-      ImGui::SameLine();
-      ImGui::Button("F");
-
-      ImGui::PopStyleVar(3);
+      keyboard.draw();
     }
     ImGui::End();
   }

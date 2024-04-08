@@ -17,6 +17,8 @@ set(SOURCE_FILES
     src/applog.cpp
     src/screen.cpp
     src/assembly.cpp
+    src/keyboard.cpp
+    src/keyboard.h
 )
 
 set(EXPECTED_BUILD_TESTS OFF)

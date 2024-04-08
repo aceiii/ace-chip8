@@ -30,6 +30,7 @@ public:
   bool is_playing() const;
 
 private:
+  void update_keyboard();
   void update_timers(double dt);
   void stack_push(uint16_t val);
   uint16_t stack_pop();
@@ -47,4 +48,6 @@ private:
   bool playing = false;
 
   std::shared_ptr<registers> regs;
+  std::array<bool, kKeyboardSize> key_down;
+  std::array<bool, kKeyboardSize> key_released;
 };
