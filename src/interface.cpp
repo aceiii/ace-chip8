@@ -20,6 +20,7 @@
 
 namespace fs = std::filesystem;
 
+constexpr int kDefaultFPS = 60;
 constexpr int kMaxSamples = 512;
 constexpr int kMaxSamplesPerUpdate = 4096;
 constexpr int kAudioSampleRate = 44100;
@@ -79,6 +80,10 @@ void Interface::initialize() {
     }
   });
   PlayAudioStream(stream);
+
+  if (lock_fps) {
+    SetTargetFPS(kDefaultFPS);
+  }
 
   SetExitKey(KEY_NULL);
   rlImGuiSetup(true);
@@ -529,6 +534,15 @@ void Interface::render_main_menu() {
       ImGui::MenuItem("Registers", nullptr, &show_registers);
       ImGui::MenuItem("Miscellaneous", nullptr, &show_misc);
       ImGui::Separator();
+      if (ImGui::MenuItem("Lock FPS", nullptr, &lock_fps)) {
+        if (lock_fps) {
+          spdlog::debug("Locking FPS");
+          SetTargetFPS(kDefaultFPS);
+        } else {
+          spdlog::debug("Unlocking FPS");
+          SetTargetFPS(0);
+        }
+      }
       ImGui::MenuItem("Show FPS", nullptr, &show_fps);
       ImGui::MenuItem("ImGui Demo", nullptr, &show_demo);
       ImGui::Separator();

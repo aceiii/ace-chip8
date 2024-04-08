@@ -35,6 +35,7 @@ private:
 
   std::vector<uint8_t> rom;
 
+  bool lock_fps = true;
   bool init_dock = true;
   bool should_close = false;
   bool show_demo = false;
