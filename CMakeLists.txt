@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 
+add_compile_definitions(TOML_EXCEPTIONS=0)
+
 set(SOURCE_FILES
     src/main.cpp
     src/interpreter.cpp
@@ -18,7 +20,7 @@ set(SOURCE_FILES
     src/screen.cpp
     src/assembly.cpp
     src/keyboard.cpp
-    src/keyboard.h
+    src/toml_impl.cpp
 )
 
 set(EXPECTED_BUILD_TESTS OFF)
