@@ -12,11 +12,13 @@
 #include <fstream>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <mach_debug/zone_info.h>
 #include <memory>
 #include <mutex>
 #include <nfd.h>
 #include <rlImGui.h>
 #include <spdlog/spdlog.h>
+#include <toml++/impl/table.hpp>
 
 namespace fs = std::filesystem;
 
@@ -25,6 +27,8 @@ constexpr int kMaxSamples = 512;
 constexpr int kMaxSamplesPerUpdate = 4096;
 constexpr int kAudioSampleRate = 44100;
 constexpr int kDefaultScreenPixelSize = 4;
+
+const char* const kSettingsFile = "settings.toml";
 
 AudioStream stream;
 
@@ -43,10 +47,64 @@ float square(float val) {
   return 0;
 }
 
+static void deserialize_settings(const toml::table &table, interface_settings &settings) {
+  settings.lock_fps = table["editor"]["lock_fps"].value_or(settings.lock_fps);
+  settings.show_fps = table["editor"]["show_fps"].value_or(settings.show_fps);
+  settings.show_demo = table["window"]["demo"].value_or(settings.show_demo);
+  settings.show_screen = table["window"]["screen"].value_or(settings.show_screen);
+  settings.show_memory = table["window"]["memory"].value_or(settings.show_memory);
+  settings.show_registers = table["window"]["registers"].value_or(settings.show_registers);
+  settings.show_logs = table["window"]["logs"].value_or(settings.show_logs);
+  settings.show_emulation = table["window"]["emulation"].value_or(settings.show_emulation);
+  settings.show_misc = table["window"]["misc"].value_or(settings.show_misc);
+  settings.show_instructions = table["window"]["instructions"].value_or(settings.show_instructions);
+  settings.show_keyboard = table["window"]["keyboard"].value_or(settings.show_keyboard);
+}
+
+static void serialize_settings(const interface_settings &settings, toml::table &table) {
+  toml::table *editor;
+  if (table.get("editor")) {
+    editor = table.get("editor")->as_table();
+  } else {
+    table.insert("editor", toml::table {});
+    editor = table.get("editor")->as_table();
+  }
+
+  editor->insert_or_assign("lock_fps", settings.lock_fps);
+  editor->insert_or_assign("show_fps", settings.show_fps);
+
+  toml::table *window;
+  if (table.get("window")) {
+    window = table.get("window")->as_table();
+  } else {
+    table.insert("window", toml::table {});
+    window = table.get("window")->as_table();
+  }
+
+  window->insert_or_assign("demo", settings.show_demo);
+  window->insert_or_assign("screen", settings.show_screen);
+  window->insert_or_assign("memory", settings.show_memory);
+  window->insert_or_assign("registers", settings.show_registers);
+  window->insert_or_assign("logs", settings.show_logs);
+  window->insert_or_assign("emulation", settings.show_emulation);
+  window->insert_or_assign("misc", settings.show_misc);
+  window->insert_or_assign("instructions", settings.show_instructions);
+  window->insert_or_assign("keyboard", settings.show_keyboard);
+}
+
 Interface::Interface(std::shared_ptr<registers> regs, Interpreter *interpreter)
     : interpreter{interpreter}, regs(std::move(regs)) {}
 
 void Interface::initialize() {
+  if (auto result = config.load(kSettingsFile); !result.has_value()) {
+    spdlog::trace("Settings.toml does not exist, using defaults: {}", result.error());
+  } else {
+    config.deserialize(deserialize_settings);
+    init_dock = false;
+  }
+
+  interface_settings &settings = config.settings;
+
   NFD_Init();
 
   int width = 1200;
@@ -81,7 +139,7 @@ void Interface::initialize() {
   });
   PlayAudioStream(stream);
 
-  if (lock_fps) {
+  if (settings.lock_fps) {
     SetTargetFPS(kDefaultFPS);
   }
 
@@ -128,6 +186,7 @@ void Interface::initialize() {
 }
 
 bool Interface::update() {
+  interface_settings &settings = config.settings;
 
   if (IsFileDropped()) {
     FilePathList droppedFiles = LoadDroppedFiles();
@@ -203,12 +262,12 @@ bool Interface::update() {
 
   render_main_menu();
 
-  if (show_demo) {
-    ImGui::ShowDemoWindow(&show_demo);
+  if (settings.show_demo) {
+    ImGui::ShowDemoWindow(&settings.show_demo);
   }
 
-  if (show_registers) {
-    if (ImGui::Begin("Registers", &show_registers)) {
+  if (settings.show_registers) {
+    if (ImGui::Begin("Registers", &settings.show_registers)) {
       ImGui::BeginTable("general_registers", 4, ImGuiTableFlags_Borders);
       {
 
@@ -279,8 +338,8 @@ bool Interface::update() {
     ImGui::End();
   }
 
-  if (show_misc) {
-    if (ImGui::Begin("Miscellaneous", &show_misc)) {
+  if (settings.show_misc) {
+    if (ImGui::Begin("Miscellaneous", &settings.show_misc)) {
       ImGui::Text("ST: %04x (%05d)", regs->st, regs->st);
       ImGui::Text("DT: %04x (%05d)", regs->dt, regs->dt);
       ImGui::Text("I:  %04x (%05d)", regs->i, regs->i);
@@ -322,8 +381,8 @@ bool Interface::update() {
     ImGui::End();
   }
 
-  if (show_emulation) {
-    if (ImGui::Begin("Emulation", &show_emulation)) {
+  if (settings.show_emulation) {
+    if (ImGui::Begin("Emulation", &settings.show_emulation)) {
       ImGuiStyle &style = ImGui::GetStyle();
 
       auto push_disabled_btn_flags = []() {
@@ -414,36 +473,36 @@ bool Interface::update() {
     ImGui::End();
   }
 
-  if (show_screen) {
-    if (ImGui::Begin("Screen", &show_screen)) {
+  if (settings.show_screen) {
+    if (ImGui::Begin("Screen", &settings.show_screen)) {
       screen.draw();
     }
     ImGui::End();
   }
 
-  if (show_memory) {
-    if (ImGui::Begin("Memory", &show_memory)) {
+  if (settings.show_memory) {
+    if (ImGui::Begin("Memory", &settings.show_memory)) {
       mem_editor.DrawContents(regs->mem.data(), regs->mem.size());
     }
     ImGui::End();
   }
 
-  if (show_instructions) {
-    if (ImGui::Begin("Instructions", &show_instructions)) {
+  if (settings.show_instructions) {
+    if (ImGui::Begin("Instructions", &settings.show_instructions)) {
       assembly.draw();
     }
     ImGui::End();
   }
 
-  if (show_logs) {
-    if (ImGui::Begin("Logs", &show_logs)) {
+  if (settings.show_logs) {
+    if (ImGui::Begin("Logs", &settings.show_logs)) {
       app_log.draw();
     }
     ImGui::End();
   }
 
-  if (show_keyboard) {
-    if (ImGui::Begin("Keyboard", &show_keyboard)) {
+  if (settings.show_keyboard) {
+    if (ImGui::Begin("Keyboard", &settings.show_keyboard)) {
       keyboard.draw();
     }
     ImGui::End();
@@ -451,7 +510,7 @@ bool Interface::update() {
 
   rlImGuiEnd();
 
-  if (show_fps) {
+  if (settings.show_fps) {
     DrawFPS(10, GetScreenHeight() - 24);
   }
 
@@ -461,6 +520,8 @@ bool Interface::update() {
 }
 
 void Interface::render_main_menu() {
+  interface_settings &settings = config.settings;
+
   if (ImGui::BeginMainMenuBar()) {
     if (ImGui::BeginMenu("File")) {
 
@@ -495,15 +556,15 @@ void Interface::render_main_menu() {
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("View")) {
-      ImGui::MenuItem("Emulation", nullptr, &show_emulation);
-      ImGui::MenuItem("Keyboard", nullptr, &show_keyboard);
-      ImGui::MenuItem("Screen", nullptr, &show_screen);
-      ImGui::MenuItem("Memory", nullptr, &show_memory);
-      ImGui::MenuItem("Registers", nullptr, &show_registers);
-      ImGui::MenuItem("Miscellaneous", nullptr, &show_misc);
+      ImGui::MenuItem("Emulation", nullptr, &settings.show_emulation);
+      ImGui::MenuItem("Keyboard", nullptr, &settings.show_keyboard);
+      ImGui::MenuItem("Screen", nullptr, &settings.show_screen);
+      ImGui::MenuItem("Memory", nullptr, &settings.show_memory);
+      ImGui::MenuItem("Registers", nullptr, &settings.show_registers);
+      ImGui::MenuItem("Miscellaneous", nullptr, &settings.show_misc);
       ImGui::Separator();
-      if (ImGui::MenuItem("Lock FPS", nullptr, &lock_fps)) {
-        if (lock_fps) {
+      if (ImGui::MenuItem("Lock FPS", nullptr, &settings.lock_fps)) {
+        if (settings.lock_fps) {
           spdlog::debug("Locking FPS");
           SetTargetFPS(kDefaultFPS);
         } else {
@@ -511,8 +572,8 @@ void Interface::render_main_menu() {
           SetTargetFPS(0);
         }
       }
-      ImGui::MenuItem("Show FPS", nullptr, &show_fps);
-      ImGui::MenuItem("ImGui Demo", nullptr, &show_demo);
+      ImGui::MenuItem("Show FPS", nullptr, &settings.show_fps);
+      ImGui::MenuItem("ImGui Demo", nullptr, &settings.show_demo);
       ImGui::Separator();
       if (ImGui::MenuItem("Reset All Windows")) {
         reset_windows();
@@ -524,11 +585,12 @@ void Interface::render_main_menu() {
 }
 
 void Interface::reset_windows() {
-  show_demo = false;
-  show_fps = false;
-  show_memory = true;
-  show_registers = true;
-  show_screen = true;
+  interface_settings &settings = config.settings;
+  settings.show_demo = false;
+  settings.show_fps = false;
+  settings.show_memory = true;
+  settings.show_registers = true;
+  settings.show_screen = true;
   init_dock = true;
 }
 
@@ -539,6 +601,16 @@ void Interface::cleanup() {
   CloseAudioDevice();
   CloseWindow();
   NFD_Quit();
+
+  spdlog::info("Saving settings to file");
+
+  if (auto result = config.serialize(serialize_settings); !result.has_value()) {
+    spdlog::warn("Failed to serialize settings: {}", result.error());
+  }
+
+  if (auto result = config.save(kSettingsFile); !result.has_value()) {
+    spdlog::warn("Failed to write settings.toml: {}", result.error());
+  }
 }
 
 void Interface::open_load_rom_dialog() {

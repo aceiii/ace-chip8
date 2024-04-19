@@ -1,5 +1,6 @@
 #pragma once
 
+#include "config.h"
 #include "interpreter.h"
 #include "applog.h"
 #include "screen.h"
@@ -12,13 +13,27 @@
 #include <raylib.h>
 #include <vector>
 
+struct interface_settings {
+  bool lock_fps = true;
+  bool show_demo = false;
+  bool show_fps = false;
+  bool show_screen = true;
+  bool show_memory = true;
+  bool show_registers = true;
+  bool show_logs = true;
+  bool show_emulation = true;
+  bool show_misc = false;
+  bool show_instructions = true;
+  bool show_keyboard = true;
+};
+
 class Interface {
 public:
   Interface(std::shared_ptr<registers> regs, Interpreter *interpreter);
 
   void initialize();
   bool update();
-  static void cleanup();
+  void cleanup();
 
 private:
   void open_load_rom_dialog();
@@ -37,17 +52,8 @@ private:
 
   std::vector<uint8_t> rom;
 
-  bool lock_fps = true;
-  bool init_dock = true;
+  Config<interface_settings> config;
+
   bool should_close = false;
-  bool show_demo = false;
-  bool show_fps = false;
-  bool show_screen = true;
-  bool show_memory = true;
-  bool show_registers = true;
-  bool show_logs = true;
-  bool show_emulation = true;
-  bool show_misc = false;
-  bool show_instructions = true;
-  bool show_keyboard = true;
+  bool init_dock = true;
 };
