@@ -14,6 +14,8 @@
 #include <vector>
 
 struct interface_settings {
+  int window_width = 1200;
+  int window_height = 800;
   bool lock_fps = true;
   bool show_demo = false;
   bool show_fps = false;

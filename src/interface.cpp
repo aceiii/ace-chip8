@@ -1,5 +1,6 @@
 #include "interface.h"
 #include "random.h"
+#include "raylib.h"
 #include "spdlog/common.h"
 #include "spdlog/details/log_msg.h"
 #include "spdlog/logger.h"
@@ -48,48 +49,51 @@ float square(float val) {
 }
 
 static void deserialize_settings(const toml::table &table, interface_settings &settings) {
+  settings.window_width = table["window"]["width"].value_or(settings.window_width);
+  settings.window_height = table["window"]["height"].value_or(settings.window_height);
   settings.lock_fps = table["editor"]["lock_fps"].value_or(settings.lock_fps);
   settings.show_fps = table["editor"]["show_fps"].value_or(settings.show_fps);
-  settings.show_demo = table["window"]["demo"].value_or(settings.show_demo);
-  settings.show_screen = table["window"]["screen"].value_or(settings.show_screen);
-  settings.show_memory = table["window"]["memory"].value_or(settings.show_memory);
-  settings.show_registers = table["window"]["registers"].value_or(settings.show_registers);
-  settings.show_logs = table["window"]["logs"].value_or(settings.show_logs);
-  settings.show_emulation = table["window"]["emulation"].value_or(settings.show_emulation);
-  settings.show_misc = table["window"]["misc"].value_or(settings.show_misc);
-  settings.show_instructions = table["window"]["instructions"].value_or(settings.show_instructions);
-  settings.show_keyboard = table["window"]["keyboard"].value_or(settings.show_keyboard);
+  settings.show_demo = table["view"]["demo"].value_or(settings.show_demo);
+  settings.show_screen = table["view"]["screen"].value_or(settings.show_screen);
+  settings.show_memory = table["view"]["memory"].value_or(settings.show_memory);
+  settings.show_registers = table["view"]["registers"].value_or(settings.show_registers);
+  settings.show_logs = table["view"]["logs"].value_or(settings.show_logs);
+  settings.show_emulation = table["view"]["emulation"].value_or(settings.show_emulation);
+  settings.show_misc = table["view"]["misc"].value_or(settings.show_misc);
+  settings.show_instructions = table["view"]["instructions"].value_or(settings.show_instructions);
+  settings.show_keyboard = table["view"]["keyboard"].value_or(settings.show_keyboard);
 }
 
 static void serialize_settings(const interface_settings &settings, toml::table &table) {
-  toml::table *editor;
-  if (table.get("editor")) {
-    editor = table.get("editor")->as_table();
-  } else {
-    table.insert("editor", toml::table {});
-    editor = table.get("editor")->as_table();
-  }
+  auto sub_table = [] (toml::table &table, const char* key) -> toml::table& {
+    toml::table *sub;
+    if (table.get(key)) {
+      sub = table.get(key)->as_table();
+    } else {
+      table.insert(key, toml::table {});
+      sub = table.get(key)->as_table();
+    }
+    return *sub;
+  };
 
-  editor->insert_or_assign("lock_fps", settings.lock_fps);
-  editor->insert_or_assign("show_fps", settings.show_fps);
+  toml::table& window = sub_table(table, "window");
+  window.insert_or_assign("width", settings.window_width);
+  window.insert_or_assign("height", settings.window_height);
 
-  toml::table *window;
-  if (table.get("window")) {
-    window = table.get("window")->as_table();
-  } else {
-    table.insert("window", toml::table {});
-    window = table.get("window")->as_table();
-  }
+  toml::table& editor = sub_table(table, "editor");
+  editor.insert_or_assign("lock_fps", settings.lock_fps);
+  editor.insert_or_assign("show_fps", settings.show_fps);
 
-  window->insert_or_assign("demo", settings.show_demo);
-  window->insert_or_assign("screen", settings.show_screen);
-  window->insert_or_assign("memory", settings.show_memory);
-  window->insert_or_assign("registers", settings.show_registers);
-  window->insert_or_assign("logs", settings.show_logs);
-  window->insert_or_assign("emulation", settings.show_emulation);
-  window->insert_or_assign("misc", settings.show_misc);
-  window->insert_or_assign("instructions", settings.show_instructions);
-  window->insert_or_assign("keyboard", settings.show_keyboard);
+  toml::table& view = sub_table(table, "view");
+  view.insert_or_assign("demo", settings.show_demo);
+  view.insert_or_assign("screen", settings.show_screen);
+  view.insert_or_assign("memory", settings.show_memory);
+  view.insert_or_assign("registers", settings.show_registers);
+  view.insert_or_assign("logs", settings.show_logs);
+  view.insert_or_assign("emulation", settings.show_emulation);
+  view.insert_or_assign("misc", settings.show_misc);
+  view.insert_or_assign("instructions", settings.show_instructions);
+  view.insert_or_assign("keyboard", settings.show_keyboard);
 }
 
 Interface::Interface(std::shared_ptr<registers> regs, Interpreter *interpreter)
@@ -107,13 +111,17 @@ void Interface::initialize() {
 
   NFD_Init();
 
-  int width = 1200;
-  int height = 800;
-
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
-  InitWindow(width, height, "CHIP-8");
+  InitWindow(settings.window_width, settings.window_height, "CHIP-8");
   InitAudioDevice();
+
+  int monitor = GetCurrentMonitor();
+  spdlog::trace("Current monitor: {}", monitor);
+
+  int monitor_width = GetMonitorWidth(monitor);
+  int monitor_height = GetMonitorHeight(monitor);
+  spdlog::trace("Monitor resolution: {}x{}", monitor_width, monitor_height);
 
   stream = LoadAudioStream(44100, 16, 1);
   SetAudioStreamBufferSizeDefault(kMaxSamplesPerUpdate);
@@ -595,6 +603,12 @@ void Interface::reset_windows() {
 }
 
 void Interface::cleanup() {
+  interface_settings &settings = config.settings;
+
+  int monitor = GetCurrentMonitor();
+  settings.window_width = GetMonitorWidth(monitor);
+  settings.window_height = GetMonitorWidth(monitor);
+
   spdlog::info("Cleaning up interface");
   rlImGuiShutdown();
   UnloadAudioStream(stream);
