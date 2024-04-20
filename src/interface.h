@@ -14,19 +14,37 @@
 #include <vector>
 
 struct interface_settings {
-  int window_width = 1200;
-  int window_height = 800;
-  bool lock_fps = true;
-  bool show_demo = false;
-  bool show_fps = false;
-  bool show_screen = true;
-  bool show_memory = true;
-  bool show_registers = true;
-  bool show_logs = true;
-  bool show_emulation = true;
-  bool show_misc = false;
-  bool show_instructions = true;
-  bool show_keyboard = false;
+  int window_width;
+  int window_height;
+  bool lock_fps;
+  bool show_demo;
+  bool show_fps;
+  bool show_screen;
+  bool show_memory;
+  bool show_registers;
+  bool show_logs;
+  bool show_emulation;
+  bool show_misc;
+  bool show_instructions;
+  bool show_keyboard;
+  bool show_audio;
+  bool show_timers;
+
+  void reset() {
+    lock_fps = true;
+    show_fps = false;
+    show_demo = false;
+    show_screen = true;
+    show_memory = true;
+    show_registers = true;
+    show_logs = true;
+    show_emulation = true;
+    show_misc = false;
+    show_instructions = true;
+    show_keyboard = false;
+    show_audio = false;
+    show_timers = false;
+  }
 };
 
 class Interface {
@@ -43,6 +61,7 @@ private:
 
   void render_main_menu();
   void reset_windows();
+  void set_window_title(const std::string &string);
 
   Interpreter *interpreter;
   std::shared_ptr<registers> regs;

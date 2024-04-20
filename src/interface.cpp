@@ -28,7 +28,10 @@ constexpr int kMaxSamples = 512;
 constexpr int kMaxSamplesPerUpdate = 4096;
 constexpr int kAudioSampleRate = 44100;
 constexpr int kDefaultScreenPixelSize = 4;
+constexpr int kDefaultWindowWidth = 800;
+constexpr int kDefaultWindowHeight = 600;
 
+const char* const kWindowTitle = "CHIP-8";
 const char* const kSettingsFile = "settings.toml";
 
 AudioStream stream;
@@ -102,6 +105,10 @@ Interface::Interface(std::shared_ptr<registers> regs, Interpreter *interpreter)
 void Interface::initialize() {
   if (auto result = config.load(kSettingsFile); !result.has_value()) {
     spdlog::trace("Settings.toml does not exist, using defaults: {}", result.error());
+    config.settings.reset();
+    config.settings.window_width = kDefaultWindowWidth;
+    config.settings.window_height = kDefaultWindowHeight;
+    init_dock = true;
   } else {
     config.deserialize(deserialize_settings);
     init_dock = false;
@@ -113,7 +120,7 @@ void Interface::initialize() {
 
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
-  InitWindow(settings.window_width, settings.window_height, "CHIP-8");
+  InitWindow(settings.window_width, settings.window_height, kWindowTitle);
   InitAudioDevice();
 
   int monitor = GetCurrentMonitor();
@@ -593,18 +600,7 @@ void Interface::render_main_menu() {
 }
 
 void Interface::reset_windows() {
-  interface_settings &settings = config.settings;
-  settings.lock_fps = true;
-  settings.show_fps = false;
-  settings.show_demo = false;
-  settings.show_screen = true;
-  settings.show_memory = true;
-  settings.show_registers = true;
-  settings.show_logs = true;
-  settings.show_emulation = true;
-  settings.show_misc = false;
-  settings.show_instructions = true;
-  settings.show_keyboard = false;
+  config.settings.reset();
   init_dock = true;
 }
 
@@ -653,8 +649,8 @@ void Interface::load_rom(const std::string &filename) {
 
   rom_loaded = true;
   fs::path rom_path = filename;
-  SetWindowTitle(
-      fmt::format("CHIP-8 - {}", rom_path.filename().string()).c_str());
+  set_window_title(rom_path.filename());
+
   std::ifstream in(filename, std::ios::binary | std::ifstream::ate);
   size_t pos = in.tellg();
   if (pos > (kMemSize - kRomStartIndex)) {
@@ -671,5 +667,13 @@ void Interface::load_rom(const std::string &filename) {
 
   if (auto_play) {
     interpreter->play();
+  }
+}
+
+void Interface::set_window_title(const std::string &title) {
+  if (title.empty()) {
+    SetWindowTitle(kWindowTitle);
+  } else {
+    SetWindowTitle(fmt::format("{} - {}", kWindowTitle, title).c_str());
   }
 }
