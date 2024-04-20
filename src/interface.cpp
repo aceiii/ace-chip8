@@ -594,11 +594,17 @@ void Interface::render_main_menu() {
 
 void Interface::reset_windows() {
   interface_settings &settings = config.settings;
-  settings.show_demo = false;
+  settings.lock_fps = true;
   settings.show_fps = false;
+  settings.show_demo = false;
+  settings.show_screen = true;
   settings.show_memory = true;
   settings.show_registers = true;
-  settings.show_screen = true;
+  settings.show_logs = true;
+  settings.show_emulation = true;
+  settings.show_misc = false;
+  settings.show_instructions = true;
+  settings.show_keyboard = true;
   init_dock = true;
 }
 
