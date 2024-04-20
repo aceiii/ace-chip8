@@ -26,7 +26,7 @@ struct interface_settings {
   bool show_emulation = true;
   bool show_misc = false;
   bool show_instructions = true;
-  bool show_keyboard = true;
+  bool show_keyboard = false;
 };
 
 class Interface {

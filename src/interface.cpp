@@ -604,16 +604,14 @@ void Interface::reset_windows() {
   settings.show_emulation = true;
   settings.show_misc = false;
   settings.show_instructions = true;
-  settings.show_keyboard = true;
+  settings.show_keyboard = false;
   init_dock = true;
 }
 
 void Interface::cleanup() {
   interface_settings &settings = config.settings;
-
-  int monitor = GetCurrentMonitor();
-  settings.window_width = GetMonitorWidth(monitor);
-  settings.window_height = GetMonitorWidth(monitor);
+  settings.window_width = GetScreenWidth();
+  settings.window_height = GetScreenHeight();
 
   spdlog::info("Cleaning up interface");
   rlImGuiShutdown();
