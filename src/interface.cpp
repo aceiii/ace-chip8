@@ -65,6 +65,8 @@ static void deserialize_settings(const toml::table &table, interface_settings &s
   settings.show_misc = table["view"]["misc"].value_or(settings.show_misc);
   settings.show_instructions = table["view"]["instructions"].value_or(settings.show_instructions);
   settings.show_keyboard = table["view"]["keyboard"].value_or(settings.show_keyboard);
+  settings.show_audio = table["view"]["audio"].value_or(settings.show_audio);
+  settings.show_timers = table["view"]["timers"].value_or(settings.show_timers);
 }
 
 static void serialize_settings(const interface_settings &settings, toml::table &table) {
@@ -97,6 +99,8 @@ static void serialize_settings(const interface_settings &settings, toml::table &
   view.insert_or_assign("misc", settings.show_misc);
   view.insert_or_assign("instructions", settings.show_instructions);
   view.insert_or_assign("keyboard", settings.show_keyboard);
+  view.insert_or_assign("audio", settings.show_audio);
+  view.insert_or_assign("timers", settings.show_timers);
 }
 
 Interface::Interface(std::shared_ptr<registers> regs, Interpreter *interpreter)
@@ -523,6 +527,73 @@ bool Interface::update() {
     ImGui::End();
   }
 
+  if (settings.show_audio) {
+    if (ImGui::Begin("Audio", &settings.show_audio)) {
+      static float values[90] = {};
+      static int values_offset = 0;
+      static double refresh_time = 0.0;
+
+      if (refresh_time == 0.0) {
+        refresh_time = ImGui::GetTime();
+      }
+
+      while (refresh_time < ImGui::GetTime()) // Create data at fixed 60 Hz rate for the demo
+      {
+          static float phase = 0.0f;
+          values[values_offset] = cosf(phase);
+          values_offset = (values_offset + 1) % IM_ARRAYSIZE(values);
+          phase += 0.10f * values_offset;
+          refresh_time += 1.0f / 60.0f;
+      }
+
+      ImGui::PlotLines("Sound", values, IM_ARRAYSIZE(values), values_offset, nullptr, -1.0f, 1.0f, ImVec2(0, 80.0f));
+    }
+    ImGui::End();
+  }
+
+  if (settings.show_timers) {
+    if (ImGui::Begin("Timer", &settings.show_timers)) {
+      ImGui::PushID("dt");
+      float delay_progress = static_cast<float>(regs->dt) / 255.0;
+      ImGui::ProgressBar(delay_progress, ImVec2(0.f, 0.f), fmt::format("{} / 255", regs->dt).c_str());
+      ImGui::SameLine();
+      ImGui::Text("Delay (DT)");
+      if (ImGui::Button("Set 0")) {
+        regs->dt = 0;
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("Set 127")) {
+        regs->dt = 127;
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("Set 255")) {
+        regs->dt = 255;
+      }
+      ImGui::PopID();
+
+      ImGui::NewLine();
+
+      ImGui::PushID("st");
+      float sound_progress = static_cast<float>(regs->st) / 255.0;
+      ImGui::ProgressBar(sound_progress, ImVec2(0.f, 0.f), fmt::format("{} / 255", regs->st).c_str());
+      ImGui::SameLine();
+      ImGui::Text("Sound (ST)");
+      if (ImGui::Button("Set 0")) {
+        regs->st = 0;
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("Set 127")) {
+        regs->st = 127;
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("Set 255")) {
+        regs->st = 255;
+      }
+      ImGui::PopID();
+    }
+    ImGui::End();
+  }
+
   rlImGuiEnd();
 
   if (settings.show_fps) {
@@ -576,6 +647,8 @@ void Interface::render_main_menu() {
       ImGui::MenuItem("Screen", nullptr, &settings.show_screen);
       ImGui::MenuItem("Memory", nullptr, &settings.show_memory);
       ImGui::MenuItem("Registers", nullptr, &settings.show_registers);
+      ImGui::MenuItem("Timers", nullptr, &settings.show_timers);
+      ImGui::MenuItem("Audio", nullptr, &settings.show_audio);
       ImGui::MenuItem("Miscellaneous", nullptr, &settings.show_misc);
       ImGui::Separator();
       if (ImGui::MenuItem("Lock FPS", nullptr, &settings.lock_fps)) {
