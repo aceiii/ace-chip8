@@ -29,6 +29,7 @@ struct interface_settings {
   bool show_keyboard;
   bool show_audio;
   bool show_timers;
+  bool auto_play;
 
   void reset() {
     lock_fps = true;
@@ -44,6 +45,7 @@ struct interface_settings {
     show_keyboard = false;
     show_audio = false;
     show_timers = false;
+    auto_play = true;
   }
 };
 

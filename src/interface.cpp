@@ -40,7 +40,6 @@ bool play_sound = false;
 float sine_idx = 0.0f;
 
 bool rom_loaded = false;
-bool auto_play = true;
 
 float square(float val) {
   if (val > 0) {
@@ -67,6 +66,7 @@ static void deserialize_settings(const toml::table &table, interface_settings &s
   settings.show_keyboard = table["view"]["keyboard"].value_or(settings.show_keyboard);
   settings.show_audio = table["view"]["audio"].value_or(settings.show_audio);
   settings.show_timers = table["view"]["timers"].value_or(settings.show_timers);
+  settings.auto_play = table["emulation"]["autoplay"].value_or(settings.auto_play);
 }
 
 static void serialize_settings(const interface_settings &settings, toml::table &table) {
@@ -101,6 +101,9 @@ static void serialize_settings(const interface_settings &settings, toml::table &
   view.insert_or_assign("keyboard", settings.show_keyboard);
   view.insert_or_assign("audio", settings.show_audio);
   view.insert_or_assign("timers", settings.show_timers);
+
+  toml::table& emulation = sub_table(table, "emilation");
+  emulation.insert_or_assign("autoplay", settings.auto_play);
 }
 
 Interface::Interface(std::shared_ptr<registers> regs, Interpreter *interpreter)
@@ -623,7 +626,7 @@ void Interface::render_main_menu() {
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Emulation")) {
-      ImGui::MenuItem("Auto Play", nullptr, &auto_play);
+      ImGui::MenuItem("Auto Play", nullptr, &settings.auto_play);
       ImGui::Separator();
       bool is_playing = interpreter->is_playing();
       if (ImGui::MenuItem("Play", nullptr, false, !is_playing)) {
@@ -738,7 +741,7 @@ void Interface::load_rom(const std::string &filename) {
   interpreter->reset();
   interpreter->load_rom_bytes(rom);
 
-  if (auto_play) {
+  if (config.settings.auto_play) {
     interpreter->play();
   }
 }
