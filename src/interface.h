@@ -16,6 +16,7 @@
 struct interface_settings {
   int window_width;
   int window_height;
+  float volume;
   bool lock_fps;
   bool show_demo;
   bool show_fps;
@@ -32,6 +33,7 @@ struct interface_settings {
   bool auto_play;
 
   void reset() {
+    volume = 50.0f;
     lock_fps = true;
     show_fps = false;
     show_demo = false;

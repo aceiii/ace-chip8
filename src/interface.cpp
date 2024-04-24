@@ -9,6 +9,7 @@
 #include "spdlog/sinks/callback_sink.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <imgui.h>
@@ -53,6 +54,7 @@ float square(float val) {
 static void deserialize_settings(const toml::table &table, interface_settings &settings) {
   settings.window_width = table["window"]["width"].value_or(settings.window_width);
   settings.window_height = table["window"]["height"].value_or(settings.window_height);
+  settings.volume = table["audio"]["volume"].value_or(settings.volume);
   settings.lock_fps = table["editor"]["lock_fps"].value_or(settings.lock_fps);
   settings.show_fps = table["editor"]["show_fps"].value_or(settings.show_fps);
   settings.show_demo = table["view"]["demo"].value_or(settings.show_demo);
@@ -85,6 +87,9 @@ static void serialize_settings(const interface_settings &settings, toml::table &
   window.insert_or_assign("width", settings.window_width);
   window.insert_or_assign("height", settings.window_height);
 
+  toml::table& audio = sub_table(table, "audio");
+  audio.insert_or_assign("volume", static_cast<int>(std::clamp(settings.volume, 0.f, 100.f)));
+
   toml::table& editor = sub_table(table, "editor");
   editor.insert_or_assign("lock_fps", settings.lock_fps);
   editor.insert_or_assign("show_fps", settings.show_fps);
@@ -110,11 +115,12 @@ Interface::Interface(std::shared_ptr<registers> regs, Interpreter *interpreter)
     : interpreter{interpreter}, regs(std::move(regs)) {}
 
 void Interface::initialize() {
+  config.settings.reset();
+  config.settings.window_width = kDefaultWindowWidth;
+  config.settings.window_height = kDefaultWindowHeight;
+
   if (auto result = config.load(kSettingsFile); !result.has_value()) {
     spdlog::trace("Settings.toml does not exist, using defaults: {}", result.error());
-    config.settings.reset();
-    config.settings.window_width = kDefaultWindowWidth;
-    config.settings.window_height = kDefaultWindowHeight;
     init_dock = true;
   } else {
     config.deserialize(deserialize_settings);
@@ -129,6 +135,9 @@ void Interface::initialize() {
 
   InitWindow(settings.window_width, settings.window_height, kWindowTitle);
   InitAudioDevice();
+
+  settings.volume = std::clamp(settings.volume, 0.0f, 100.0f);
+  SetMasterVolume(settings.volume / 100.0f);
 
   int monitor = GetCurrentMonitor();
   spdlog::trace("Current monitor: {}", monitor);
@@ -532,6 +541,11 @@ bool Interface::update() {
 
   if (settings.show_audio) {
     if (ImGui::Begin("Audio", &settings.show_audio)) {
+      if (ImGui::SliderFloat("Volume", &settings.volume, 0.0f, 100.0f, "%.0f")) {
+        spdlog::debug("Set volume: {}", settings.volume);
+        SetMasterVolume(settings.volume / 100.0f);
+      }
+
       static float values[90] = {};
       static int values_offset = 0;
       static double refresh_time = 0.0;
