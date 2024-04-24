@@ -28,8 +28,8 @@ constexpr int kMaxSamples = 512;
 constexpr int kMaxSamplesPerUpdate = 4096;
 constexpr int kAudioSampleRate = 44100;
 constexpr int kDefaultScreenPixelSize = 4;
-constexpr int kDefaultWindowWidth = 800;
-constexpr int kDefaultWindowHeight = 600;
+constexpr int kDefaultWindowWidth = 1200;
+constexpr int kDefaultWindowHeight = 800;
 
 const char* const kWindowTitle = "CHIP-8";
 const char* const kSettingsFile = "settings.toml";
@@ -684,6 +684,7 @@ void Interface::render_main_menu() {
 void Interface::reset_windows() {
   config.settings.reset();
   init_dock = true;
+  SetWindowSize(kDefaultWindowWidth, kDefaultWindowHeight);
 }
 
 void Interface::cleanup() {
