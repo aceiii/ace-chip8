@@ -645,6 +645,12 @@ void Interface::render_main_menu() {
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("View")) {
+      bool full_screen = IsWindowFullscreen();
+      if (ImGui::MenuItem("Full Screen", nullptr, full_screen)) {
+        SetWindowSize(kDefaultWindowWidth, kDefaultWindowHeight);
+        ToggleFullscreen();
+      }
+      ImGui::Separator();
       ImGui::MenuItem("Emulation", nullptr, &settings.show_emulation);
       ImGui::MenuItem("Keyboard", nullptr, &settings.show_keyboard);
       ImGui::MenuItem("Screen", nullptr, &settings.show_screen);
