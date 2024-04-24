@@ -25,7 +25,6 @@
 namespace fs = std::filesystem;
 
 constexpr int kDefaultFPS = 60;
-constexpr int kMaxSamples = 512;
 constexpr int kMaxSamplesPerUpdate = 4096;
 constexpr int kAudioSampleRate = 44100;
 constexpr int kDefaultScreenPixelSize = 4;
@@ -42,7 +41,7 @@ float sine_idx = 0.0f;
 
 bool rom_loaded = false;
 
-float square(float val) {
+static float square(float val) {
   if (val > 0) {
     return 1.0f;
   } else if (val < 0) {
@@ -146,28 +145,8 @@ void Interface::initialize() {
   int monitor_height = GetMonitorHeight(monitor);
   spdlog::trace("Monitor resolution: {}x{}", monitor_width, monitor_height);
 
-  stream = LoadAudioStream(44100, 16, 1);
   SetAudioStreamBufferSizeDefault(kMaxSamplesPerUpdate);
-
-  SetAudioStreamCallback(stream, [](void *buffer, unsigned int frames) {
-    const float frequency = 440.0f;
-
-    float incr = frequency / float(kAudioSampleRate);
-    auto d = static_cast<short *>(buffer);
-
-    for (unsigned int i = 0; i < frames; i++) {
-      if (!play_sound) {
-        d[i] = 0;
-        continue;
-      }
-
-      d[i] =
-          static_cast<short>(((1 << 15) - 1) * square(sinf(2 * PI * sine_idx)));
-      sine_idx += incr;
-      if (sine_idx > 1.0f)
-        sine_idx -= 1.0f;
-    }
-  });
+  stream = LoadAudioStream(kAudioSampleRate, 16, 1);
   PlayAudioStream(stream);
 
   if (settings.lock_fps) {
@@ -246,6 +225,30 @@ bool Interface::update() {
   keyboard.update();
 
   play_sound = regs->st > 0;
+
+  if (IsAudioStreamProcessed(stream)) {
+      constexpr int frame_count = kMaxSamplesPerUpdate;
+      const float frequency = 440.0f;
+
+      static std::array<short, frame_count> buffer;
+
+      float incr = frequency / float(kAudioSampleRate);
+
+      for (int i = 0; i < frame_count; i++) {
+        if (!play_sound) {
+          buffer[i] = 0;
+          continue;
+        }
+
+        buffer[i] =
+            static_cast<short>(((1 << 15) - 1) * square(sinf(2 * PI * sine_idx)));
+        sine_idx += incr;
+        if (sine_idx > 1.0f)
+          sine_idx -= 1.0f;
+      }
+
+    UpdateAudioStream(stream, buffer.data(), frame_count);
+  }
 
   screen.update();
 
@@ -546,24 +549,11 @@ bool Interface::update() {
         SetMasterVolume(settings.volume / 100.0f);
       }
 
-      static float values[90] = {};
-      static int values_offset = 0;
-      static double refresh_time = 0.0;
-
-      if (refresh_time == 0.0) {
-        refresh_time = ImGui::GetTime();
+      std::array<float, 100> samples;
+      for (int n = 0; n < 100; n += 1) {
+        samples[n] = sinf(n * 0.2f + ImGui::GetTime() * 5.f);
       }
-
-      while (refresh_time < ImGui::GetTime()) // Create data at fixed 60 Hz rate for the demo
-      {
-          static float phase = 0.0f;
-          values[values_offset] = cosf(phase);
-          values_offset = (values_offset + 1) % IM_ARRAYSIZE(values);
-          phase += 0.10f * values_offset;
-          refresh_time += 1.0f / 60.0f;
-      }
-
-      ImGui::PlotLines("Sound", values, IM_ARRAYSIZE(values), values_offset, nullptr, -1.0f, 1.0f, ImVec2(0, 80.0f));
+      ImGui::PlotLines("Sound", samples.data(), samples.size(), 0, nullptr, -1.5f, 1.5f, ImVec2(0, 80.0f));
     }
     ImGui::End();
   }
