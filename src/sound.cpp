@@ -1,6 +1,7 @@
 #include "sound.h"
 
 #include <cmath>
+#include <cstring>
 #include <spdlog/spdlog.h>
 #include <raylib.h>
 #include <imgui.h>
@@ -47,11 +48,6 @@ void WaveGeneratorSource::render() {
     }
     ImGui::EndCombo();
   }
-
-  std::array<float, 100> samples;
-  for (int n = 0; n < 100; n += 1) {
-    samples[n] = sinf(n * 0.2f + ImGui::GetTime() * 5.f);
-  }
   ImGui::PlotLines("Sound", samples.data(), samples.size(), 0, nullptr, -1.5f, 1.5f, ImVec2(0, 80.0f));
   ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f);
   ImGui::SliderFloat("Frequency", &frequency, 10.0f, 2048.0f);
@@ -88,6 +84,7 @@ static inline float sawtooth_wave(float idx) {
 void WaveGeneratorSource::gen_sound_data(bool play_sound, short buffer[], size_t buffer_size) {
   if (!play_sound && !force_play) {
     memset(buffer, 0, sizeof(short) * buffer_size);
+    memset(&samples, 0, sizeof(float) * samples.size());
     return;
   }
 
@@ -104,7 +101,12 @@ void WaveGeneratorSource::gen_sound_data(bool play_sound, short buffer[], size_t
   })();
 
   for (int i = 0; i < buffer_size; i++) {
-    buffer[i] = static_cast<short>(((1 << 15) - 1) * wave_func(wave_idx) * (volume / 100.0f));
+    float sample = wave_func(wave_idx) * (volume / 100.0f);
+    buffer[i] = static_cast<short>(((1 << 15) - 1) * sample);
+
+    if (i < samples.size()) {
+      samples[i] = sample;
+    }
 
     wave_idx += incr;
     if (wave_idx > 1.0f)

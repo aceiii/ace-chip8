@@ -28,6 +28,7 @@ public:
   virtual void gen_sound_data(bool play_sound, short buffer[], size_t buffer_size) override;
 
 private:
+  std::array<float, 1000> samples;
   bool force_play = false;
   float frequency = 440.0f;
   float volume = 100.0f;
