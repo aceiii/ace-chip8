@@ -74,11 +74,11 @@ static inline float square_wave(float idx) {
 }
 
 static inline float triangle_wave(float idx) {
-  return std::abs(fmod((idx - 0.25f), 1.0f) - 0.5f) * 4 - 1;
+  return std::abs(fmod(idx, 1.0f) - 0.5f) * 4 - 1;
 }
 
 static inline float sawtooth_wave(float idx) {
-  return std::abs(fmod(idx * 2, 1.0f)) * 2 - 1;
+  return std::abs(fmod(idx, 1.0f)) * 2 - 1;
 }
 
 void WaveGeneratorSource::gen_sound_data(bool play_sound, short buffer[], size_t buffer_size) {
