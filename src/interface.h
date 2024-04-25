@@ -6,6 +6,7 @@
 #include "screen.h"
 #include "assembly.h"
 #include "keyboard.h"
+#include "sound.h"
 
 #include <imgui.h>
 #include <imgui_memory_editor/imgui_memory_editor.h>
@@ -67,18 +68,15 @@ private:
   void reset_windows();
   void set_window_title(const std::string &string);
 
+private:
   Interpreter *interpreter;
-  std::shared_ptr<registers> regs;
   MemoryEditor mem_editor;
   AppLog app_log;
   Screen screen;
   AssemblyViewer assembly;
   Keyboard keyboard;
-
-  std::vector<uint8_t> rom;
-
   Config<interface_settings> config;
-
-  bool should_close = false;
-  bool init_dock = true;
+  std::vector<uint8_t> rom;
+  std::shared_ptr<registers> regs;
+  std::unique_ptr<SoundSource> sound_source;
 };

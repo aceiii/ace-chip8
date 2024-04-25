@@ -20,6 +20,7 @@ set(SOURCE_FILES
     src/screen.cpp
     src/assembly.cpp
     src/keyboard.cpp
+    src/sound.cpp
     src/toml_impl.cpp
 )
 

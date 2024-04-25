@@ -10,6 +10,7 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 
 #include <algorithm>
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <imgui.h>
@@ -25,8 +26,6 @@
 namespace fs = std::filesystem;
 
 constexpr int kDefaultFPS = 60;
-constexpr int kMaxSamplesPerUpdate = 4096;
-constexpr int kAudioSampleRate = 44100;
 constexpr int kDefaultScreenPixelSize = 4;
 constexpr int kDefaultWindowWidth = 1200;
 constexpr int kDefaultWindowHeight = 800;
@@ -34,12 +33,17 @@ constexpr int kDefaultWindowHeight = 800;
 const char* const kWindowTitle = "CHIP-8";
 const char* const kSettingsFile = "settings.toml";
 
-AudioStream stream;
+static bool should_close = false;
+static bool init_dock = true;
+static bool rom_loaded = false;
+static float sine_idx = 0.0f;
 
-bool play_sound = false;
-float sine_idx = 0.0f;
+static const char* const sound_source_names[] = {
+  "Waveform Generator",
+  "Wave file",
+};
 
-bool rom_loaded = false;
+static size_t current_source = 0;
 
 static float square(float val) {
   if (val > 0) {
@@ -145,9 +149,8 @@ void Interface::initialize() {
   int monitor_height = GetMonitorHeight(monitor);
   spdlog::trace("Monitor resolution: {}x{}", monitor_width, monitor_height);
 
-  SetAudioStreamBufferSizeDefault(kMaxSamplesPerUpdate);
-  stream = LoadAudioStream(kAudioSampleRate, 16, 1);
-  PlayAudioStream(stream);
+  sound_source = std::make_unique<WaveGeneratorSource>();
+  sound_source->initialize();
 
   if (settings.lock_fps) {
     SetTargetFPS(kDefaultFPS);
@@ -224,30 +227,8 @@ bool Interface::update() {
 
   keyboard.update();
 
-  play_sound = regs->st > 0;
-
-  if (IsAudioStreamProcessed(stream)) {
-      constexpr int frame_count = kMaxSamplesPerUpdate;
-      const float frequency = 440.0f;
-
-      static std::array<short, frame_count> buffer;
-
-      float incr = frequency / float(kAudioSampleRate);
-
-      for (int i = 0; i < frame_count; i++) {
-        if (!play_sound) {
-          buffer[i] = 0;
-          continue;
-        }
-
-        buffer[i] =
-            static_cast<short>(((1 << 15) - 1) * square(sinf(2 * PI * sine_idx)));
-        sine_idx += incr;
-        if (sine_idx > 1.0f)
-          sine_idx -= 1.0f;
-      }
-
-    UpdateAudioStream(stream, buffer.data(), frame_count);
+  if (sound_source) {
+    sound_source->update(regs->st > 0);
   }
 
   screen.update();
@@ -544,16 +525,42 @@ bool Interface::update() {
 
   if (settings.show_audio) {
     if (ImGui::Begin("Audio", &settings.show_audio)) {
-      if (ImGui::SliderFloat("Volume", &settings.volume, 0.0f, 100.0f, "%.0f")) {
+      if (ImGui::SliderFloat("Master Volume", &settings.volume, 0.0f, 100.0f, "%.0f")) {
         spdlog::debug("Set volume: {}", settings.volume);
         SetMasterVolume(settings.volume / 100.0f);
       }
 
-      std::array<float, 100> samples;
-      for (int n = 0; n < 100; n += 1) {
-        samples[n] = sinf(n * 0.2f + ImGui::GetTime() * 5.f);
+      ImGui::Separator();
+
+      if (ImGui::BeginCombo("Source", sound_source_names[current_source])) {
+        for (int n = 0; n < IM_ARRAYSIZE(sound_source_names); n += 1) {
+          bool is_selected = current_source == n;
+          if (ImGui::Selectable(sound_source_names[n], is_selected) && n != current_source) {
+            current_source = n;
+
+            if (sound_source) {
+              sound_source->cleanup();
+            }
+
+            if (current_source == 0) {
+              sound_source = std::make_unique<WaveGeneratorSource>();
+              sound_source->initialize();
+            } else {
+              sound_source = nullptr;
+            }
+          }
+          if (is_selected) {
+            ImGui::SetItemDefaultFocus();
+          }
+        }
+        ImGui::EndCombo();
       }
-      ImGui::PlotLines("Sound", samples.data(), samples.size(), 0, nullptr, -1.5f, 1.5f, ImVec2(0, 80.0f));
+
+      ImGui::Separator();
+
+      if (sound_source) {
+        sound_source->render();
+      }
     }
     ImGui::End();
   }
@@ -697,8 +704,12 @@ void Interface::cleanup() {
   settings.window_height = GetScreenHeight();
 
   spdlog::info("Cleaning up interface");
+
+  if (sound_source) {
+    sound_source->cleanup();
+  }
+
   rlImGuiShutdown();
-  UnloadAudioStream(stream);
   CloseAudioDevice();
   CloseWindow();
   NFD_Quit();
