@@ -78,5 +78,5 @@ private:
   Config<interface_settings> config;
   std::vector<uint8_t> rom;
   std::shared_ptr<registers> regs;
-  std::unique_ptr<SoundSource> sound_source;
+  std::vector<std::unique_ptr<SoundSource>> sounds;
 };

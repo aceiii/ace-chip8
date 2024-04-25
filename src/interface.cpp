@@ -36,7 +36,7 @@ const char* const kSettingsFile = "settings.toml";
 static bool should_close = false;
 static bool init_dock = true;
 static bool rom_loaded = false;
-static float sine_idx = 0.0f;
+static bool force_play_all_sounds = false;
 
 static const char* const sound_source_names[] = {
   "Waveform Generator",
@@ -149,8 +149,7 @@ void Interface::initialize() {
   int monitor_height = GetMonitorHeight(monitor);
   spdlog::trace("Monitor resolution: {}x{}", monitor_width, monitor_height);
 
-  sound_source = std::make_unique<WaveGeneratorSource>();
-  sound_source->initialize();
+  sounds.push_back(std::make_unique<WaveGeneratorSource>());
 
   if (settings.lock_fps) {
     SetTargetFPS(kDefaultFPS);
@@ -227,8 +226,9 @@ bool Interface::update() {
 
   keyboard.update();
 
-  if (sound_source) {
-    sound_source->update(regs->st > 0);
+  bool is_playing = regs->st > 0;
+  for (auto &sound : sounds) {
+    sound->update(is_playing || force_play_all_sounds);
   }
 
   screen.update();
@@ -530,38 +530,36 @@ bool Interface::update() {
         SetMasterVolume(settings.volume / 100.0f);
       }
 
-      ImGui::Separator();
+      ImGui::Checkbox("Force Play All Sounds", &force_play_all_sounds);
 
-      if (ImGui::BeginCombo("Source", sound_source_names[current_source])) {
-        for (int n = 0; n < IM_ARRAYSIZE(sound_source_names); n += 1) {
-          bool is_selected = current_source == n;
-          if (ImGui::Selectable(sound_source_names[n], is_selected) && n != current_source) {
-            current_source = n;
+      ImGui::NewLine();
 
-            if (sound_source) {
-              sound_source->cleanup();
-            }
+      int sid_to_remove = -1;
+      for (int sid = 0; sid < sounds.size(); sid += 1) {
+        ImGui::PushID(sid);
+        ImGui::BeginChild("##Sound", ImVec2(0, 0), ImGuiChildFlags_Border | ImGuiChildFlags_AutoResizeY);
+        ImGui::Text("Sound #%d", (sid + 1));
 
-            if (current_source == 0) {
-              sound_source = std::make_unique<WaveGeneratorSource>();
-              sound_source->initialize();
-            } else {
-              sound_source = nullptr;
-            }
-          }
-          if (is_selected) {
-            ImGui::SetItemDefaultFocus();
-          }
+        sounds[sid]->render();
+
+        if (ImGui::Button("Remove")) {
+          sid_to_remove = sid;
         }
-        ImGui::EndCombo();
+
+        ImGui::EndChild();
+        ImGui::PopID();
       }
 
-      ImGui::Separator();
-
-      if (sound_source) {
-        sound_source->render();
+      if (sid_to_remove != -1) {
+        sounds.erase(sounds.begin() + sid_to_remove);
       }
     }
+
+    ImGui::NewLine();
+    if (ImGui::Button("Add sound")) {
+      sounds.push_back(std::make_unique<WaveGeneratorSource>());
+    }
+
     ImGui::End();
   }
 
@@ -704,11 +702,7 @@ void Interface::cleanup() {
   settings.window_height = GetScreenHeight();
 
   spdlog::info("Cleaning up interface");
-
-  if (sound_source) {
-    sound_source->cleanup();
-  }
-
+  sounds.clear();
   rlImGuiShutdown();
   CloseAudioDevice();
   CloseWindow();

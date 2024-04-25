@@ -10,12 +10,13 @@ constexpr int kAudioNumChannels = 1;
 
 class SoundSource {
 public:
+  SoundSource();
+  virtual ~SoundSource();
+
   virtual void render() = 0;
   virtual void gen_sound_data(bool play_sound, short buffer[], size_t buffer_size) = 0;
 
-  virtual void initialize();
   void update(bool play_sound);
-  virtual void cleanup();
 
 private:
   AudioStream stream;
@@ -24,6 +25,8 @@ private:
 
 class WaveGeneratorSource : public SoundSource {
 public:
+  virtual ~WaveGeneratorSource() = default;
+
   virtual void render() override;
   virtual void gen_sound_data(bool play_sound, short buffer[], size_t buffer_size) override;
 

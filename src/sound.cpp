@@ -7,13 +7,15 @@
 #include <imgui.h>
 #include <random>
 
-void SoundSource::initialize() {
+SoundSource::SoundSource() {
+  spdlog::trace("Initializing SoundSource");
   SetAudioStreamBufferSizeDefault(kMaxSamplesPerUpdate);
   stream = LoadAudioStream(kAudioSampleRate, kAudioSampleSize, kAudioNumChannels);
   PlayAudioStream(stream);
 }
 
-void SoundSource::cleanup() {
+SoundSource::~SoundSource() {
+  spdlog::trace("Destructing SoundSource");
   StopAudioStream(stream);
   UnloadAudioStream(stream);
 }
