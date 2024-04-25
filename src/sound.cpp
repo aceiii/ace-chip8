@@ -50,7 +50,34 @@ void WaveGeneratorSource::render() {
   }
   ImGui::PlotLines("Sound", samples.data(), samples.size(), 0, nullptr, -1.5f, 1.5f, ImVec2(0, 80.0f));
   ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f);
-  ImGui::SliderFloat("Frequency", &frequency, 10.0f, 2048.0f);
+  ImGui::SliderFloat("Frequency", &frequency, 20.0f, 15000.0f);
+  if (ImGui::Button("20Hz")) {
+    frequency = 20.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("50Hz")) {
+    frequency = 50.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("100Hz")) {
+    frequency = 100.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("220Hz")) {
+    frequency = 220.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("440Hz")) {
+    frequency = 440.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("1kHz")) {
+    frequency = 1000.0f;
+  }
+  ImGui::SameLine();
+    if (ImGui::Button("11.5kHz")) {
+    frequency = 11500.0f;
+  }
   ImGui::Checkbox("Force Play", &force_play);
 }
 
