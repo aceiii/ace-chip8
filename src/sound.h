@@ -4,6 +4,7 @@
 #include <raylib.h>
 #include <array>
 #include <vector>
+#include <string>
 
 constexpr int kMaxSamplesPerUpdate = 1024;
 constexpr int kAudioSampleRate = 44100;
@@ -38,6 +39,29 @@ private:
   float offset = 0.0f;
   float volume = 50.0f;
   int wave_type = 0;
+};
+
+class WaveFileSource final : public SoundSource {
+public:
+  virtual ~WaveFileSource();
+
+  virtual void render() override;
+  virtual void update(bool play_sound, double time) override;
+
+  void cleanup();
+  void load_wave(const char* filename);
+  void open_load_wave_dialog();
+
+private:
+  float *wav_samples = nullptr;
+  float wav_min = -1.5f;
+  float wav_max = 1.5f;
+  std::string wav_filename;
+  int frame_count = 0;
+  int current_frame = 0;
+  bool force_play = false;
+  float volume = 100.0f;
+  float volume_mulitplier = 1.0f;
 };
 
 class SoundManager final {

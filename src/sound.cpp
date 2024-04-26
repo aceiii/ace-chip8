@@ -1,12 +1,16 @@
 #include "sound.h"
 
-#include <array>
-#include <cmath>
-#include <cstring>
 #include <spdlog/spdlog.h>
 #include <raylib.h>
 #include <imgui.h>
+#include <imgui_internal.h>
+#include <nfd.h>
+#include <cstring>
+#include <array>
+#include <cmath>
 #include <random>
+#include <algorithm>
+#include <filesystem>
 
 static inline float noise(double x) {
   static std::random_device rd;
@@ -120,6 +124,156 @@ void WaveGeneratorSource::update(bool play_sound, double time) {
     samples[i] = wave_func((time * frequency) + offset) * (volume / 100.0f);
     time += incr;
   }
+}
+
+WaveFileSource::~WaveFileSource() {
+  cleanup();
+}
+
+void WaveFileSource::render() {
+  auto push_disabled_btn_flags = []() {
+    ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+  };
+
+  auto pop_disabled_btn_flags = []() {
+    ImGui::PopItemFlag();
+    ImGui::PopStyleColor();
+  };
+
+  bool is_loaded = !wav_filename.empty();
+
+  if (is_loaded) {
+    push_disabled_btn_flags();
+  }
+
+  if (ImGui::Button("Load file")) {
+    open_load_wave_dialog();
+  }
+
+  if (is_loaded) {
+    pop_disabled_btn_flags();
+  }
+
+  ImGui::SameLine();
+
+  if (!is_loaded) {
+    push_disabled_btn_flags();
+  }
+
+  if (ImGui::Button("Unload file")) {
+    cleanup();
+  }
+
+  if (!is_loaded) {
+    pop_disabled_btn_flags();
+  }
+
+  ImGui::SameLine();
+  ImGui::Text("%s", wav_filename.c_str());
+
+  ImGui::PlotHistogram("Waveform", wav_samples, frame_count, 0, nullptr, wav_min, wav_max, ImVec2(0, 80.0f));
+  ImGui::PlotLines("Samples", samples.data(), samples.size(), 0, nullptr, -1.0f, 1.0f, ImVec2(0, 50.0f));
+  ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f");
+  if (ImGui::Button("0%")) {
+    volume = 0.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("25%")) {
+    volume = 25.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("50%")) {
+    volume = 50.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("75%")) {
+    volume = 75.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("100%")) {
+    volume = 100.0f;
+  }
+
+  if (ImGui::RadioButton("1x", volume_mulitplier == 1.0f)) {
+    volume_mulitplier = 1.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::RadioButton("2x", volume_mulitplier == 2.0f)) {
+    volume_mulitplier = 2.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::RadioButton("4x", volume_mulitplier == 4.0f)) {
+    volume_mulitplier = 4.0f;
+  }
+  ImGui::SameLine();
+  if (ImGui::RadioButton("8x", volume_mulitplier == 8.0f)) {
+    volume_mulitplier = 8.0f;
+  }
+
+  ImGui::Checkbox("Force Play", &force_play);
+}
+
+void WaveFileSource::update(bool play_sound, double time) {
+  if (!wav_samples || (!play_sound && !force_play)) {
+    memset(&samples, 0, samples.size() * sizeof(float));
+    return;
+  }
+
+  for (int i = 0; i < samples.size(); i += 1) {
+    samples[i] = wav_samples[current_frame] * (volume / 100.0f) * volume_mulitplier;
+    current_frame = (current_frame + 1) % frame_count;
+  }
+}
+
+void WaveFileSource::cleanup() {
+  UnloadWaveSamples(wav_samples);
+  wav_samples = nullptr;
+  wav_min = -1.5f;
+  wav_max = 1.5f;
+  wav_filename.clear();
+  frame_count = 0;
+  force_play = false;
+}
+
+void WaveFileSource::open_load_wave_dialog() {
+  nfdchar_t *wav_path;
+  nfdfilteritem_t filter_item[1] = {{"Wave", "wav"}};
+  nfdresult_t result = NFD_OpenDialog(&wav_path, filter_item, 1, NULL);
+  if (result == NFD_OKAY) {
+    spdlog::debug("Opened file: {}", wav_path);
+
+    cleanup();
+    load_wave(wav_path);
+
+    NFD_FreePath(wav_path);
+  } else if (result == NFD_CANCEL) {
+    spdlog::debug("User pressed cancel.");
+  } else {
+    spdlog::debug("Error: {}\n", NFD_GetError());
+  }
+}
+
+void WaveFileSource::load_wave(const char *filename) {
+  Wave wave = LoadWave(filename);
+  WaveFormat(&wave, kAudioSampleRate, 16, 1);
+  wav_samples = LoadWaveSamples(wave);
+  frame_count = wave.frameCount;
+  UnloadWave(wave);
+
+  std::filesystem::path path(filename);
+  wav_filename = path.filename();
+
+  wav_min = -0.01f;
+  wav_max = 0.01f;
+
+  for (int i = 0; i < frame_count; i += 1) {
+    wav_min = std::min(wav_min, wav_samples[i]);
+    wav_max = std::max(wav_max, wav_samples[i]);
+  }
+
+  wav_min *= 1.1f;
+  wav_max *= 1.1f;
 }
 
 void SoundManager::initialize() {

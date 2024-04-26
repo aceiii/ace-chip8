@@ -536,8 +536,21 @@ bool Interface::update() {
     }
 
     ImGui::NewLine();
+
+    if (ImGui::BeginPopup("New Sound")) {
+      if (ImGui::Button("Waveform Generator")) {
+        sounds.add_source(std::make_unique<WaveGeneratorSource>());
+        ImGui::CloseCurrentPopup();
+      }
+      if (ImGui::Button("Wave File")) {
+        sounds.add_source(std::make_unique<WaveFileSource>());
+        ImGui::CloseCurrentPopup();
+      }
+      ImGui::EndPopup();
+    }
+
     if (ImGui::Button("Add sound")) {
-      sounds.add_source(std::make_unique<WaveGeneratorSource>());
+      ImGui::OpenPopup("New Sound");
     }
 
     ImGui::End();
