@@ -1,5 +1,6 @@
 #include "sound.h"
 
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <spdlog/spdlog.h>
@@ -7,26 +8,31 @@
 #include <imgui.h>
 #include <random>
 
-SoundSource::SoundSource() {
-  spdlog::trace("Initializing SoundSource");
-  SetAudioStreamBufferSizeDefault(kMaxSamplesPerUpdate);
-  stream = LoadAudioStream(kAudioSampleRate, kAudioSampleSize, kAudioNumChannels);
-  PlayAudioStream(stream);
+static inline float noise(double x) {
+  static std::random_device rd;
+  static std::mt19937 gen(rd());
+  static std::uniform_real_distribution<> dist(-1.0f, 1.0f);
+  return dist(gen);
 }
 
-SoundSource::~SoundSource() {
-  spdlog::trace("Destructing SoundSource");
-  StopAudioStream(stream);
-  UnloadAudioStream(stream);
+static inline float sine_wave(double x) {
+  return std::sin(2 * PI * x);
 }
 
-void SoundSource::update(bool play_sound) {
-  if (!IsAudioStreamProcessed(stream)) {
-    return;
+static inline float square_wave(double x) {
+  float s = sine_wave(x);
+  if (std::abs(s) <= 0.001f) {
+    return 0.f;
   }
+  return std::abs(s) / s;
+}
 
-  gen_sound_data(play_sound, buffer.data(), buffer.size());
-  UpdateAudioStream(stream, buffer.data(), buffer.size());
+static inline float triangle_wave(double x) {
+  return std::abs(fmod(x, 1.0f) - 0.5f) * 4 - 1;
+}
+
+static inline float sawtooth_wave(double x) {
+  return std::abs(fmod(x, 1.0f)) * 2 - 1;
 }
 
 void WaveGeneratorSource::render() {
@@ -50,17 +56,26 @@ void WaveGeneratorSource::render() {
     }
     ImGui::EndCombo();
   }
-  ImGui::PlotLines("Sound", samples.data(), samples.size(), 0, nullptr, -1.5f, 1.5f, ImVec2(0, 80.0f));
-  ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f);
-  ImGui::SliderFloat("Frequency", &frequency, 20.0f, 15000.0f);
-  if (ImGui::Button("20Hz")) {
-    frequency = 20.0f;
+  ImGui::PlotLines("Sound", samples.data(), samples.size(), 0, nullptr, -1.2f, 1.2f, ImVec2(0, 50.0f));
+  ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f");
+  ImGui::SliderFloat("Offset", &offset, 0.0f, 1.0f, "%0.2f");
+  if (ImGui::Button("+0.0")) {
+    offset = 0.0f;
   }
   ImGui::SameLine();
-  if (ImGui::Button("50Hz")) {
-    frequency = 50.0f;
+  if (ImGui::Button("+0.25")) {
+    offset = 0.25f;
   }
   ImGui::SameLine();
+  if (ImGui::Button("+0.5")) {
+    offset = 0.50f;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("+0.75")) {
+    offset = 0.75f;
+  }
+
+  ImGui::SliderFloat("Frequency", &frequency, 20.0f, 15000.0f, "%.0f");
   if (ImGui::Button("100Hz")) {
     frequency = 100.0f;
   }
@@ -83,41 +98,11 @@ void WaveGeneratorSource::render() {
   ImGui::Checkbox("Force Play", &force_play);
 }
 
-static inline float noise(float idx) {
-  static std::random_device rd;
-  static std::mt19937 gen(rd());
-  static std::uniform_real_distribution<> dist(-1.0f, 1.0f);
-  return dist(gen);
-}
-
-static inline float sine_wave(float idx) {
-  return std::sin(2 * PI * idx);
-}
-
-static inline float square_wave(float idx) {
-  float s = sine_wave(idx);
-  if (std::abs(s) <= 0.001f) {
-    return 0.f;
-  }
-  return std::abs(s) / s;
-}
-
-static inline float triangle_wave(float idx) {
-  return std::abs(fmod(idx, 1.0f) - 0.5f) * 4 - 1;
-}
-
-static inline float sawtooth_wave(float idx) {
-  return std::abs(fmod(idx, 1.0f)) * 2 - 1;
-}
-
-void WaveGeneratorSource::gen_sound_data(bool play_sound, short buffer[], size_t buffer_size) {
+void WaveGeneratorSource::update(bool play_sound, double time) {
   if (!play_sound && !force_play) {
-    memset(buffer, 0, sizeof(short) * buffer_size);
     memset(&samples, 0, sizeof(float) * samples.size());
     return;
   }
-
-  float incr = frequency / static_cast<float>(kAudioSampleRate);
 
   auto wave_func = ([this]() {
     switch (wave_type) {
@@ -129,16 +114,84 @@ void WaveGeneratorSource::gen_sound_data(bool play_sound, short buffer[], size_t
     }
   })();
 
-  for (int i = 0; i < buffer_size; i++) {
-    float sample = wave_func(wave_idx) * (volume / 100.0f);
-    buffer[i] = static_cast<short>(((1 << 15) - 1) * sample);
+  double incr = 1.0 / kAudioSampleRate;
 
-    if (i < samples.size()) {
-      samples[i] = sample;
+  for (int i = 0; i < samples.size(); i++) {
+    samples[i] = wave_func((time * frequency) + offset) * (volume / 100.0f);
+    time += incr;
+  }
+}
+
+void SoundManager::initialize() {
+  spdlog::trace("Initializing SoundSource");
+
+  memset(buffer.data(), 0, buffer.size() * sizeof(short));
+  memset(samples.data(), 0, samples.size() * sizeof(float));
+
+  SetAudioStreamBufferSizeDefault(kMaxSamplesPerUpdate);
+  stream = LoadAudioStream(kAudioSampleRate, kAudioSampleSize, kAudioNumChannels);
+  PlayAudioStream(stream);
+}
+
+void SoundManager::cleanup() {
+  spdlog::trace("Destructing SoundSource");
+  sources.clear();
+  StopAudioStream(stream);
+  UnloadAudioStream(stream);
+}
+
+void SoundManager::render() {
+  ImGui::PlotLines("Sound", samples.data(), samples.size(), 0, nullptr, -1.5f, 1.5f, ImVec2(0, 80.0f));
+
+  int sid_to_remove = -1;
+  for (int sid = 0; sid < sources.size(); sid += 1) {
+    ImGui::PushID(sid);
+    ImGui::BeginChild("##Sound", ImVec2(0, 0), ImGuiChildFlags_Border | ImGuiChildFlags_AutoResizeY);
+    ImGui::Text("Sound #%d", (sid + 1));
+
+    sources[sid]->render();
+
+    if (ImGui::Button("Remove")) {
+      sid_to_remove = sid;
     }
 
-    wave_idx += incr;
-    if (wave_idx > 1.0f)
-      wave_idx -= 1.0f;
+    ImGui::EndChild();
+    ImGui::PopID();
   }
+
+  if (sid_to_remove != -1) {
+    remove_source_at(sid_to_remove);
+  }
+}
+
+void SoundManager::update(bool play_sound) {
+  if (!IsAudioStreamProcessed(stream)) {
+    return;
+  }
+
+  memset(samples.data(), 0, samples.size() * sizeof(float));
+
+  for (auto &source : sources) {
+    source->update(play_sound, time);
+    const float* source_samples = source->get_samples();
+    for (int i = 0; i < buffer.size(); i += 1) {
+      samples[i] += source_samples[i];
+    }
+  }
+
+  for (int i = 0; i < buffer.size(); i += 1) {
+    buffer[i] = static_cast<short>(((1 << 15) - 1) * samples[i]);
+  }
+
+  time = fmod(time + (1.0 / kAudioSampleRate) * buffer.size(), 1.0);
+
+  UpdateAudioStream(stream, buffer.data(), buffer.size());
+}
+
+void SoundManager::add_source(std::unique_ptr<SoundSource> source) {
+  sources.push_back(std::move(source));
+}
+
+void SoundManager::remove_source_at(size_t index) {
+  sources.erase(sources.begin() + index);
 }

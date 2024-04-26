@@ -76,7 +76,7 @@ private:
   AssemblyViewer assembly;
   Keyboard keyboard;
   Config<interface_settings> config;
+  SoundManager sounds;
   std::vector<uint8_t> rom;
   std::shared_ptr<registers> regs;
-  std::vector<std::unique_ptr<SoundSource>> sounds;
 };

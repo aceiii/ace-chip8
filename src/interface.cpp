@@ -149,7 +149,8 @@ void Interface::initialize() {
   int monitor_height = GetMonitorHeight(monitor);
   spdlog::trace("Monitor resolution: {}x{}", monitor_width, monitor_height);
 
-  sounds.push_back(std::make_unique<WaveGeneratorSource>());
+  sounds.initialize();
+  sounds.add_source(std::make_unique<WaveGeneratorSource>());
 
   if (settings.lock_fps) {
     SetTargetFPS(kDefaultFPS);
@@ -227,9 +228,7 @@ bool Interface::update() {
   keyboard.update();
 
   bool is_playing = regs->st > 0;
-  for (auto &sound : sounds) {
-    sound->update(is_playing || force_play_all_sounds);
-  }
+  sounds.update(is_playing || force_play_all_sounds);
 
   screen.update();
 
@@ -531,33 +530,14 @@ bool Interface::update() {
       }
 
       ImGui::Checkbox("Force Play All Sounds", &force_play_all_sounds);
-
       ImGui::NewLine();
 
-      int sid_to_remove = -1;
-      for (int sid = 0; sid < sounds.size(); sid += 1) {
-        ImGui::PushID(sid);
-        ImGui::BeginChild("##Sound", ImVec2(0, 0), ImGuiChildFlags_Border | ImGuiChildFlags_AutoResizeY);
-        ImGui::Text("Sound #%d", (sid + 1));
-
-        sounds[sid]->render();
-
-        if (ImGui::Button("Remove")) {
-          sid_to_remove = sid;
-        }
-
-        ImGui::EndChild();
-        ImGui::PopID();
-      }
-
-      if (sid_to_remove != -1) {
-        sounds.erase(sounds.begin() + sid_to_remove);
-      }
+      sounds.render();
     }
 
     ImGui::NewLine();
     if (ImGui::Button("Add sound")) {
-      sounds.push_back(std::make_unique<WaveGeneratorSource>());
+      sounds.add_source(std::make_unique<WaveGeneratorSource>());
     }
 
     ImGui::End();
@@ -702,7 +682,7 @@ void Interface::cleanup() {
   settings.window_height = GetScreenHeight();
 
   spdlog::info("Cleaning up interface");
-  sounds.clear();
+  sounds.cleanup();
   rlImGuiShutdown();
   CloseAudioDevice();
   CloseWindow();
