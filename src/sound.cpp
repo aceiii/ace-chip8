@@ -1,5 +1,6 @@
 #include "sound.h"
 
+#include <functional>
 #include <spdlog/spdlog.h>
 #include <raylib.h>
 #include <imgui.h>
@@ -11,6 +12,8 @@
 #include <random>
 #include <algorithm>
 #include <filesystem>
+#include <utility>
+#include <vector>
 
 static inline float noise(double x) {
   static std::random_device rd;
@@ -39,19 +42,19 @@ static inline float sawtooth_wave(double x) {
   return std::abs(fmod(x, 1.0f)) * 2 - 1;
 }
 
-void WaveGeneratorSource::render() {
-  static const char* const wave_type_names[] = {
-    "Sine",
-    "Square",
-    "Triangle",
-    "Sawtooth",
-    "Noise",
-  };
+std::vector<std::pair<const char*, std::function<float(double)>>> wave_funcs = {
+  std::make_pair("Sine", sine_wave),
+  std::make_pair("Square", square_wave),
+  std::make_pair("Triangle", triangle_wave),
+  std::make_pair("Sawtooth", sawtooth_wave),
+  std::make_pair("Noise", noise),
+};
 
-  if (ImGui::BeginCombo("Type", wave_type_names[wave_type])) {
-    for (int n = 0; n < IM_ARRAYSIZE(wave_type_names); n += 1) {
+void WaveGeneratorSource::render() {
+  if (ImGui::BeginCombo("Type", wave_funcs[wave_type].first)) {
+    for (int n = 0; n < wave_funcs.size(); n += 1) {
       bool is_selected = wave_type == n;
-      if (ImGui::Selectable(wave_type_names[n], is_selected)) {
+      if (ImGui::Selectable(wave_funcs[n].first, is_selected)) {
         wave_type = n;
       }
       if (is_selected) {
@@ -108,17 +111,8 @@ void WaveGeneratorSource::update(bool play_sound, double time) {
     return;
   }
 
-  auto wave_func = ([this]() {
-    switch (wave_type) {
-      case 0: return sine_wave;
-      case 1: return square_wave;
-      case 2: return triangle_wave;
-      case 3: return sawtooth_wave;
-      default: return noise;
-    }
-  })();
-
   double incr = 1.0 / kAudioSampleRate;
+  auto wave_func = wave_funcs[wave_type].second;
 
   for (int i = 0; i < samples.size(); i++) {
     samples[i] = wave_func((time * frequency) + offset) * (volume / 100.0f);

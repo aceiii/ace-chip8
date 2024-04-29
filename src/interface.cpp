@@ -38,13 +38,6 @@ static bool init_dock = true;
 static bool rom_loaded = false;
 static bool force_play_all_sounds = false;
 
-static const char* const sound_source_names[] = {
-  "Waveform Generator",
-  "Wave file",
-};
-
-static size_t current_source = 0;
-
 static float square(float val) {
   if (val > 0) {
     return 1.0f;
