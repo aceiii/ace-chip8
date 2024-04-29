@@ -293,11 +293,14 @@ void SoundManager::render() {
 
   int sid_to_remove = -1;
   for (int sid = 0; sid < sources.size(); sid += 1) {
+    auto &pair = sources[sid];
     ImGui::PushID(sid);
     ImGui::BeginChild("##Sound", ImVec2(0, 0), ImGuiChildFlags_Border | ImGuiChildFlags_AutoResizeY);
-    ImGui::Text("Sound #%d", (sid + 1));
+    ImGui::Text("Sound #%d (%s)", (sid + 1), pair.source->name());
 
-    sources[sid]->render();
+    ImGui::Checkbox("Enable", &pair.enable);
+
+    pair.source->render();
 
     if (ImGui::Button("Remove")) {
       sid_to_remove = sid;
@@ -319,9 +322,9 @@ void SoundManager::update(bool play_sound) {
 
   memset(samples.data(), 0, samples.size() * sizeof(float));
 
-  for (auto &source : sources) {
-    source->update(play_sound, time);
-    const float* source_samples = source->get_samples();
+  for (auto &pair : sources) {
+    pair.source->update(play_sound && pair.enable, time);
+    const float* source_samples = pair.source->get_samples();
     for (int i = 0; i < buffer.size(); i += 1) {
       samples[i] += source_samples[i];
     }
@@ -337,7 +340,10 @@ void SoundManager::update(bool play_sound) {
 }
 
 void SoundManager::add_source(std::unique_ptr<SoundSource> source) {
-  sources.push_back(std::move(source));
+  sources.push_back(sound_source_pair {
+    std::move(source),
+    true,
+  });
 }
 
 void SoundManager::remove_source_at(size_t index) {

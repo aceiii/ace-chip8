@@ -15,6 +15,7 @@ class SoundSource {
 public:
   virtual ~SoundSource() = default;
 
+  virtual const char* name() const = 0;
   virtual void render() = 0;
   virtual void update(bool play_sound, double time) = 0;
 
@@ -30,6 +31,7 @@ class WaveGeneratorSource final : public SoundSource {
 public:
   virtual ~WaveGeneratorSource() = default;
 
+  virtual const char* name() const override { return "Wave Generator"; }
   virtual void render() override;
   virtual void update(bool play_sound, double time) override;
 
@@ -45,6 +47,7 @@ class WaveFileSource final : public SoundSource {
 public:
   virtual ~WaveFileSource();
 
+  virtual const char* name() const override { return "Wave File"; }
   virtual void render() override;
   virtual void update(bool play_sound, double time) override;
 
@@ -75,9 +78,14 @@ public:
   void remove_source_at(size_t index);
 
 private:
+  struct sound_source_pair {
+    std::unique_ptr<SoundSource> source;
+    bool enable;
+  };
+
   double time = 0;
   AudioStream stream;
   std::array<float, kMaxSamplesPerUpdate> samples;
   std::array<short, kMaxSamplesPerUpdate> buffer;
-  std::vector<std::unique_ptr<SoundSource>> sources;
+  std::vector<sound_source_pair> sources;
 };
