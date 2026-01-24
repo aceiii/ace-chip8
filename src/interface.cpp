@@ -38,6 +38,8 @@ static bool init_dock = true;
 static bool rom_loaded = false;
 static bool force_play_all_sounds = false;
 
+static Sound explode_sound;
+
 static float square(float val) {
   if (val > 0) {
     return 1.0f;
@@ -141,6 +143,8 @@ void Interface::initialize() {
   int monitor_width = GetMonitorWidth(monitor);
   int monitor_height = GetMonitorHeight(monitor);
   spdlog::trace("Monitor resolution: {}x{}", monitor_width, monitor_height);
+
+  explode_sound = LoadSound("res/explode.mp3");
 
   sounds.initialize();
   sounds.add_source(std::make_unique<WaveGeneratorSource>());
@@ -360,7 +364,8 @@ bool Interface::update() {
 
       static int sound_val;
       if (ImGui::Button("Play Sound")) {
-        regs->st = sound_val;
+        //regs->st = sound_val;
+        PlaySound(explode_sound);
       }
       ImGui::SameLine();
       ImGui::SliderInt("##Sound Val", &sound_val, 1, 255);
