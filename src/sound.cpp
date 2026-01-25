@@ -233,7 +233,7 @@ void WaveFileSource::cleanup() {
 void WaveFileSource::open_load_wave_dialog() {
   nfdchar_t *wav_path;
   nfdfilteritem_t filter_item[1] = {{"Wave", "wav"}};
-  nfdresult_t result = NFD_OpenDialog(&wav_path, filter_item, 1, NULL);
+  nfdresult_t result = NFD_OpenDialog(&wav_path, filter_item, 1, nullptr);
   if (result == NFD_OKAY) {
     spdlog::debug("Opened file: {}", wav_path);
 

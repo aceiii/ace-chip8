@@ -104,6 +104,15 @@ static void deserialize_settings(const toml::table &table, interface_settings &s
 
   settings.pixel_on = array_color(table["display"]["pixel_on"], settings.pixel_on);
   settings.pixel_off = array_color(table["display"]["pixel_off"], settings.pixel_off);
+
+  // settings.recent_files = table["file"]["recent_files"].value_or(settings.recent_files);
+
+  // settings.recent_files.clear();
+  // table["file"]["recent_files"].as_array()->for_each([&](auto&& file) {
+  //   if constexpr (toml::is_string<decltype(file)>) {
+  //     settings.recent_files.push_back(*file);
+  //   }
+  // });
 }
 
 static void serialize_settings(const interface_settings &settings, toml::table &table) {
@@ -138,6 +147,15 @@ static void serialize_settings(const interface_settings &settings, toml::table &
   toml::table& disp = sub_table(table, "display");
   disp.insert_or_assign("pixel_on", color_array(settings.pixel_on));
   disp.insert_or_assign("pixel_off", color_array(settings.pixel_off));
+
+  toml::table& file = sub_table(table, "file");
+  auto recent_files = file["recent_files"].as_array();
+  recent_files->clear();
+
+  for (const auto &filename : settings.recent_files) {
+    spdlog::debug("Recent file: '{}'", filename);
+    recent_files->push_back(filename);
+  }
 }
 
 Interface::Interface(std::shared_ptr<registers> regs, Interpreter *interpreter)
@@ -672,6 +690,15 @@ void Interface::render_main_menu() {
         open_load_rom_dialog();
       }
 
+      if (ImGui::BeginMenu("Open Recent", !settings.recent_files.empty()))
+      {
+        for (auto &file : settings.recent_files) {
+          if (ImGui::MenuItem(file.c_str())) {
+            spdlog::debug("Pressed recent file: '{}'", file);
+          }
+        }
+        ImGui::EndMenu();
+      }
       ImGui::Separator();
 
       if (ImGui::MenuItem("Quit", "Ctrl+Q")) {
@@ -768,7 +795,7 @@ void Interface::cleanup() {
 void Interface::open_load_rom_dialog() {
   nfdchar_t *rom_path;
   nfdfilteritem_t filter_item[2] = {{"ROM", "rom"}, {"CHIP-8", "ch8"}};
-  nfdresult_t result = NFD_OpenDialog(&rom_path, filter_item, 2, NULL);
+  nfdresult_t result = NFD_OpenDialog(&rom_path, filter_item, 2, nullptr);
   if (result == NFD_OKAY) {
     spdlog::debug("Opened file: {}", rom_path);
 
@@ -806,6 +833,9 @@ void Interface::load_rom(const std::string &filename) {
   if (config.settings.auto_play) {
     interpreter->play();
   }
+
+  auto abs_path = fs::absolute(filename).string();
+  config.settings.add_recent_file(abs_path);
 }
 
 void Interface::set_window_title(const std::string &title) {

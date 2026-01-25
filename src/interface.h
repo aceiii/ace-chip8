@@ -1,20 +1,23 @@
 #pragma once
 
+#include "applog.h"
+#include "assembly.h"
 #include "config.h"
 #include "interpreter.h"
-#include "applog.h"
-#include "screen.h"
-#include "assembly.h"
 #include "keyboard.h"
+#include "screen.h"
 #include "sound.h"
+#include "spdlog/spdlog.h"
 
-#include <imgui.h>
+#include <deque>
 #include <imgui_memory_editor/imgui_memory_editor.h>
 #include <memory>
 #include <raylib.h>
 #include <vector>
 
 struct interface_settings {
+  static constexpr int max_recent_files = 10;
+
   int window_width;
   int window_height;
   float volume;
@@ -37,6 +40,8 @@ struct interface_settings {
   Color pixel_on;
   Color pixel_off;
 
+  std::deque<std::string> recent_files;
+
   void reset() {
     volume = 50.0f;
     lock_fps = true;
@@ -57,6 +62,20 @@ struct interface_settings {
 
     pixel_on = RAYWHITE;
     pixel_off = BLACK;
+
+    recent_files.clear();
+  }
+
+  void add_recent_file(std::string_view file) {
+    auto it = std::find(recent_files.begin(), recent_files.end(), file);
+    if (it != recent_files.end()) {
+      return;
+    }
+
+    recent_files.emplace_back(file);
+    if (recent_files.size() > max_recent_files) {
+      recent_files.pop_front();
+    }
   }
 };
 
