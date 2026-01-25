@@ -149,13 +149,13 @@ static void serialize_settings(const interface_settings &settings, toml::table &
   disp.insert_or_assign("pixel_off", color_array(settings.pixel_off));
 
   toml::table& file = sub_table(table, "file");
-  auto recent_files = file["recent_files"].as_array();
-  recent_files->clear();
 
+  toml::array recent_files {};
   for (const auto &filename : settings.recent_files) {
-    spdlog::debug("Recent file: '{}'", filename);
-    recent_files->push_back(filename);
+    recent_files.push_back(filename);
   }
+
+  file.insert_or_assign("recent_files", recent_files);
 }
 
 Interface::Interface(std::shared_ptr<registers> regs, Interpreter *interpreter)
