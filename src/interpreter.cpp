@@ -134,18 +134,18 @@ void Interpreter::step() {
       break;
     case 0x1:
       // sets VX to VX | VY
+      regs->v[x] |= regs->v[y];
       regs->v[0xf] = 0;
-      regs->v[x] = regs->v[x] | regs->v[y];
       break;
     case 0x2:
       // sets VX to VX & VY
+      regs->v[x] &= regs->v[y];
       regs->v[0xf] = 0;
-      regs->v[x] = regs->v[x] & regs->v[y];
       break;
     case 0x3:
       // sets VX to VX xor VY
+      regs->v[x] ^= regs->v[y];
       regs->v[0xf] = 0;
-      regs->v[x] = regs->v[x] xor regs->v[y];
       break;
     case 0x4:
       // adds VY to VX, set VF to 1 if overflow else 0
