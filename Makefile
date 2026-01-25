@@ -2,7 +2,7 @@ BUILD_DIR	= build
 SRC_DIR		= .
 TARGET		= build/ace-chip8
 
-.PHONY: all configure build clean run
+.PHONY: all configure build clean run run-debug
 
 all: configure build
 
@@ -17,6 +17,9 @@ clean:
 
 run: $(TARGET)
 	./$(TARGET)
+
+run-debug: $(TARGET)
+	./$(TARGET) --log-level=debug
 
 $(TARGET): build
 
