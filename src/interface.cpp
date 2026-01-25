@@ -105,14 +105,14 @@ static void deserialize_settings(const toml::table &table, interface_settings &s
   settings.pixel_on = array_color(table["display"]["pixel_on"], settings.pixel_on);
   settings.pixel_off = array_color(table["display"]["pixel_off"], settings.pixel_off);
 
-  // settings.recent_files = table["file"]["recent_files"].value_or(settings.recent_files);
-
-  // settings.recent_files.clear();
-  // table["file"]["recent_files"].as_array()->for_each([&](auto&& file) {
-  //   if constexpr (toml::is_string<decltype(file)>) {
-  //     settings.recent_files.push_back(*file);
-  //   }
-  // });
+  if (auto arr = table["file"]["recent_files"].as_array()) {
+    settings.recent_files.clear();
+    arr->for_each([&](auto&& file) {
+      if constexpr (toml::is_string<decltype(file)>) {
+        settings.recent_files.push_back(*file);
+      }
+    });
+  }
 }
 
 static void serialize_settings(const interface_settings &settings, toml::table &table) {
