@@ -20,7 +20,7 @@ void Screen::update() {
     for (int x = 0; x < screen_width; x += 1) {
       int idx = (y * screen_width) + x;
       bool px = pixels[idx];
-      DrawRectangle(x * pixel_size, y * pixel_size, pixel_size, pixel_size,
+      DrawRectangle(x * pixel_size, y * pixel_size, pixel_size - 1, pixel_size - 1,
                     px ? RAYWHITE : BLACK);
     }
   }
