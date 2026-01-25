@@ -7,6 +7,7 @@
 
  - Clone repo `git clone git@.../ace-chip8.git`
  - Cd to repo directory: `cd ace-chip8`
+ - Update submodules: `git submodule update --init --recursive`
  - Run command: `make`
  - Run executable: `make run`
 
