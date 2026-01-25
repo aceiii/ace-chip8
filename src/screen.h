@@ -2,10 +2,15 @@
 
 #include <raylib.h>
 
+struct screen_settings {
+    Color pixel_on;
+    Color pixel_off;
+};
+
 class Screen {
 public:
   void initialize(int width, int height, int pixel_size, const bool pixels[]);
-  void update();
+  void update(screen_settings settings);
   void draw();
   void cleanup();
 

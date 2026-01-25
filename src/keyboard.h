@@ -3,6 +3,8 @@
 #include "registers.h"
 #include <vector>
 #include <string>
+#include <memory>
+
 
 struct key_mapping {
   std::string label;
@@ -20,5 +22,5 @@ public:
 
 private:
   std::vector<key_mapping> mapping;
-  std::shared_ptr<registers> regs;
+  std::shared_ptr<registers> regs {};
 };

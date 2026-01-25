@@ -18,27 +18,32 @@
 #include <mach_debug/zone_info.h>
 #include <memory>
 #include <mutex>
+#include <print>
 #include <nfd.h>
 #include <rlImGui.h>
+#include <rlImGuiColors.h>
 #include <spdlog/spdlog.h>
 #include <toml++/impl/table.hpp>
 
 namespace fs = std::filesystem;
 
-constexpr int kDefaultFPS = 60;
-constexpr int kDefaultScreenPixelSize = 4;
-constexpr int kDefaultWindowWidth = 1200;
-constexpr int kDefaultWindowHeight = 800;
+namespace {
+    constexpr int kDefaultFPS = 60;
+    constexpr int kDefaultScreenPixelSize = 4;
+    constexpr int kDefaultWindowWidth = 1200;
+    constexpr int kDefaultWindowHeight = 800;
 
-const char* const kWindowTitle = "CHIP-8";
-const char* const kSettingsFile = "settings.toml";
+    const char* const kWindowTitle = "CHIP-8";
+    const char* const kSettingsFile = "settings.toml";
 
-static bool should_close = false;
-static bool init_dock = true;
-static bool rom_loaded = false;
-static bool force_play_all_sounds = false;
+    bool should_close = false;
+    bool init_dock = true;
+    bool rom_loaded = false;
+    bool force_play_all_sounds = false;
 
-static Sound explode_sound;
+    Sound explode_sound;
+}
+
 
 static float square(float val) {
   if (val > 0) {
@@ -49,6 +54,34 @@ static float square(float val) {
   return 0;
 }
 
+auto sub_table(toml::table &table, const char* key) -> toml::table& {
+  toml::table *sub;
+  if (table.get(key)) {
+    sub = table.get(key)->as_table();
+  } else {
+    table.insert(key, toml::table {});
+    sub = table.get(key)->as_table();
+  }
+  return *sub;
+}
+
+auto color_array(const Color &c) -> toml::array {
+  return toml::array { c.r, c.g, c.b };
+}
+
+auto array_color(auto arr, const Color &default_color) -> Color {
+  if (!arr) {
+    return default_color;
+  }
+
+  return Color {
+    .r = arr[0].value_or(default_color.r),
+    .g = arr[1].value_or(default_color.g),
+    .b = arr[2].value_or(default_color.b),
+    .a = 255,
+  };
+}
+
 static void deserialize_settings(const toml::table &table, interface_settings &settings) {
   settings.window_width = table["window"]["width"].value_or(settings.window_width);
   settings.window_height = table["window"]["height"].value_or(settings.window_height);
@@ -57,6 +90,7 @@ static void deserialize_settings(const toml::table &table, interface_settings &s
   settings.show_fps = table["editor"]["show_fps"].value_or(settings.show_fps);
   settings.show_demo = table["view"]["demo"].value_or(settings.show_demo);
   settings.show_screen = table["view"]["screen"].value_or(settings.show_screen);
+  settings.show_display = table["view"]["display"].value_or(settings.show_display);
   settings.show_memory = table["view"]["memory"].value_or(settings.show_memory);
   settings.show_registers = table["view"]["registers"].value_or(settings.show_registers);
   settings.show_logs = table["view"]["logs"].value_or(settings.show_logs);
@@ -67,20 +101,12 @@ static void deserialize_settings(const toml::table &table, interface_settings &s
   settings.show_audio = table["view"]["audio"].value_or(settings.show_audio);
   settings.show_timers = table["view"]["timers"].value_or(settings.show_timers);
   settings.auto_play = table["emulation"]["autoplay"].value_or(settings.auto_play);
+
+  settings.pixel_on = array_color(table["display"]["pixel_on"], settings.pixel_on);
+  settings.pixel_off = array_color(table["display"]["pixel_off"], settings.pixel_off);
 }
 
 static void serialize_settings(const interface_settings &settings, toml::table &table) {
-  auto sub_table = [] (toml::table &table, const char* key) -> toml::table& {
-    toml::table *sub;
-    if (table.get(key)) {
-      sub = table.get(key)->as_table();
-    } else {
-      table.insert(key, toml::table {});
-      sub = table.get(key)->as_table();
-    }
-    return *sub;
-  };
-
   toml::table& window = sub_table(table, "window");
   window.insert_or_assign("width", settings.window_width);
   window.insert_or_assign("height", settings.window_height);
@@ -95,6 +121,7 @@ static void serialize_settings(const interface_settings &settings, toml::table &
   toml::table& view = sub_table(table, "view");
   view.insert_or_assign("demo", settings.show_demo);
   view.insert_or_assign("screen", settings.show_screen);
+  view.insert_or_assign("display", settings.show_display);
   view.insert_or_assign("memory", settings.show_memory);
   view.insert_or_assign("registers", settings.show_registers);
   view.insert_or_assign("logs", settings.show_logs);
@@ -105,8 +132,12 @@ static void serialize_settings(const interface_settings &settings, toml::table &
   view.insert_or_assign("audio", settings.show_audio);
   view.insert_or_assign("timers", settings.show_timers);
 
-  toml::table& emulation = sub_table(table, "emilation");
+  toml::table& emulation = sub_table(table, "emulation");
   emulation.insert_or_assign("autoplay", settings.auto_play);
+
+  toml::table& disp = sub_table(table, "display");
+  disp.insert_or_assign("pixel_on", color_array(settings.pixel_on));
+  disp.insert_or_assign("pixel_off", color_array(settings.pixel_off));
 }
 
 Interface::Interface(std::shared_ptr<registers> regs, Interpreter *interpreter)
@@ -169,7 +200,7 @@ void Interface::initialize() {
   auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
   auto formatter = std::make_shared<spdlog::pattern_formatter>();
   auto callback_sink = std::make_shared<spdlog::sinks::callback_sink_mt>(
-      [=](const spdlog::details::log_msg &msg) {
+      [=, this](const spdlog::details::log_msg &msg) {
         spdlog::memory_buf_t formatted;
         formatter->format(msg, formatted);
 
@@ -227,7 +258,10 @@ bool Interface::update() {
   bool is_playing = regs->st > 0;
   sounds.update(is_playing || force_play_all_sounds);
 
-  screen.update();
+  screen.update(screen_settings {
+    .pixel_on = settings.pixel_on,
+    .pixel_off = settings.pixel_off,
+  });
 
   BeginDrawing();
   ClearBackground(RAYWHITE);
@@ -492,6 +526,26 @@ bool Interface::update() {
     ImGui::End();
   }
 
+  if (settings.show_display) {
+    if (ImGui::Begin("Display", &settings.show_display)) {
+      {
+        static ImVec4 color;
+        color = rlImGuiColors::Convert(settings.pixel_on);
+        if (ImGui::ColorEdit3("Pixel ON", static_cast<float*>(&color.x))) {
+          settings.pixel_on = rlImGuiColors::Convert(color);
+        }
+      }
+      {
+        static ImVec4 color;
+        color = rlImGuiColors::Convert(settings.pixel_off);
+        if (ImGui::ColorEdit3("Pixel OFF", static_cast<float*>(&color.x))) {
+          settings.pixel_off = rlImGuiColors::Convert(color);
+        }
+      }
+    }
+    ImGui::End();
+  }
+
   if (settings.show_memory) {
     if (ImGui::Begin("Memory", &settings.show_memory)) {
       mem_editor.DrawContents(regs->mem.data(), regs->mem.size());
@@ -654,6 +708,7 @@ void Interface::render_main_menu() {
       ImGui::MenuItem("Emulation", nullptr, &settings.show_emulation);
       ImGui::MenuItem("Keyboard", nullptr, &settings.show_keyboard);
       ImGui::MenuItem("Screen", nullptr, &settings.show_screen);
+      ImGui::MenuItem("Display", nullptr, &settings.show_display);
       ImGui::MenuItem("Memory", nullptr, &settings.show_memory);
       ImGui::MenuItem("Registers", nullptr, &settings.show_registers);
       ImGui::MenuItem("Timers", nullptr, &settings.show_timers);

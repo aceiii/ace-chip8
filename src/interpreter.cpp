@@ -1,8 +1,7 @@
 #include "interpreter.h"
 #include "random.h"
 
-#include <_types/_uint16_t.h>
-#include <_types/_uint8_t.h>
+#include <vector>
 #include <optional>
 #include <spdlog/spdlog.h>
 #include <utility>

@@ -3,6 +3,7 @@
 #include "registers.h"
 #include "timer.h"
 
+#include <vector>
 #include <memory>
 #include <optional>
 

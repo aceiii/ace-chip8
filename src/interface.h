@@ -22,6 +22,7 @@ struct interface_settings {
   bool show_demo;
   bool show_fps;
   bool show_screen;
+  bool show_display;
   bool show_memory;
   bool show_registers;
   bool show_logs;
@@ -33,12 +34,16 @@ struct interface_settings {
   bool show_timers;
   bool auto_play;
 
+  Color pixel_on;
+  Color pixel_off;
+
   void reset() {
     volume = 50.0f;
     lock_fps = true;
     show_fps = false;
     show_demo = false;
     show_screen = true;
+    show_display = false;
     show_memory = true;
     show_registers = true;
     show_logs = true;
@@ -49,6 +54,9 @@ struct interface_settings {
     show_audio = false;
     show_timers = false;
     auto_play = true;
+
+    pixel_on = RAYWHITE;
+    pixel_off = BLACK;
   }
 };
 
