@@ -89,7 +89,7 @@ void Interpreter::step() {
     } else {
       // call machine routine at NNN
       // unimplemented
-      spdlog::warn("Unimplemented instruction 1NNN: {:x}", nnn);
+      spdlog::warn("Unimplemented instruction 0x{:04x}", nnn);
     }
     break;
   case 0x1:
