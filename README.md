@@ -3,6 +3,14 @@
 ![Chip-8 Screenshot](images/chip-8_2024-04-05.png)
 
 
+## How to build
+
+ - Clone repo `git clone git@.../ace-chip8.git`
+ - Cd to repo directory: `cd ace-chip8`
+ - Run command: `make`
+ - Run executable: `make run`
+
+
 ## Test Suite Results
 
 ![1 - Chip8 Logo](images/1-chip8-logo_2026-01-24.png)
