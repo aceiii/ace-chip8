@@ -690,12 +690,16 @@ void Interface::render_main_menu() {
         open_load_rom_dialog();
       }
 
-      if (ImGui::BeginMenu("Open Recent", !settings.recent_files.empty()))
-      {
+      if (ImGui::BeginMenu("Open Recent", !settings.recent_files.empty())) {
         for (auto &file : settings.recent_files) {
           if (ImGui::MenuItem(file.c_str())) {
             spdlog::debug("Pressed recent file: '{}'", file);
           }
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Clear Recent")) {
+          spdlog::debug("Clearing recent files");
+          settings.recent_files.clear();
         }
         ImGui::EndMenu();
       }
