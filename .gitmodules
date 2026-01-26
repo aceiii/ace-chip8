@@ -31,3 +31,9 @@
 [submodule "external/tomlplusplus"]
 	path = external/tomlplusplus
 	url = https://github.com/marzer/tomlplusplus.git
+[submodule "external/chip8-test-suite"]
+	path = external/chip8-test-suite
+	url = https://github.com/Timendus/chip8-test-suite.git
+[submodule "external/chip8-roms"]
+	path = external/chip8-roms
+	url = https://github.com/kripod/chip8-roms.git
