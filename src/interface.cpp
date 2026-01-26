@@ -102,6 +102,8 @@ static void deserialize_settings(const toml::table &table, interface_settings &s
   settings.show_timers = table["view"]["timers"].value_or(settings.show_timers);
   settings.auto_play = table["emulation"]["autoplay"].value_or(settings.auto_play);
 
+  settings.show_grid_lines = table["display"]["show_grid_lines"].value_or(settings.show_grid_lines);
+  settings.grid_color = array_color(table["display"]["grid_color"], settings.grid_color);
   settings.pixel_on = array_color(table["display"]["pixel_on"], settings.pixel_on);
   settings.pixel_off = array_color(table["display"]["pixel_off"], settings.pixel_off);
 
@@ -145,6 +147,8 @@ static void serialize_settings(const interface_settings &settings, toml::table &
   emulation.insert_or_assign("autoplay", settings.auto_play);
 
   toml::table& disp = sub_table(table, "display");
+  disp.insert_or_assign("show_grid_lines", settings.show_grid_lines);
+  disp.insert_or_assign("grid_color", color_array(settings.grid_color));
   disp.insert_or_assign("pixel_on", color_array(settings.pixel_on));
   disp.insert_or_assign("pixel_off", color_array(settings.pixel_off));
 
@@ -277,6 +281,8 @@ bool Interface::update() {
   sounds.update(is_playing || force_play_all_sounds);
 
   screen.update(screen_settings {
+    .show_grid_lines = settings.show_grid_lines,
+    .grid_color = settings.grid_color,
     .pixel_on = settings.pixel_on,
     .pixel_off = settings.pixel_off,
   });
@@ -546,6 +552,14 @@ bool Interface::update() {
 
   if (settings.show_display) {
     if (ImGui::Begin("Display", &settings.show_display)) {
+      ImGui::Checkbox("Show grid lines", &settings.show_grid_lines);
+      {
+        static ImVec4 color;
+        color = rlImGuiColors::Convert(settings.grid_color);
+        if (ImGui::ColorEdit3("Grid", static_cast<float*>(&color.x))) {
+          settings.grid_color = rlImGuiColors::Convert(color);
+        }
+      }
       {
         static ImVec4 color;
         color = rlImGuiColors::Convert(settings.pixel_on);

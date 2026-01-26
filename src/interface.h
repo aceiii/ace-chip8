@@ -37,6 +37,8 @@ struct interface_settings {
   bool show_timers;
   bool auto_play;
 
+  bool show_grid_lines;
+  Color grid_color;
   Color pixel_on;
   Color pixel_off;
 
@@ -60,9 +62,10 @@ struct interface_settings {
     show_timers = false;
     auto_play = true;
 
+    show_grid_lines = true;
+    grid_color = BLACK;
     pixel_on = RAYWHITE;
     pixel_off = BLACK;
-
     recent_files.clear();
   }
 

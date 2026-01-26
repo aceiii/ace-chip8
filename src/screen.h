@@ -3,8 +3,10 @@
 #include <raylib.h>
 
 struct screen_settings {
-    Color pixel_on;
-    Color pixel_off;
+  bool show_grid_lines;
+  Color grid_color;
+  Color pixel_on;
+  Color pixel_off;
 };
 
 class Screen {
