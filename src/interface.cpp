@@ -706,7 +706,7 @@ void Interface::render_main_menu() {
 
       if (ImGui::BeginMenu("Open Recent", !settings.recent_files.empty())) {
         for (auto &file : settings.recent_files) {
-          if (ImGui::MenuItem(file.c_str())) {
+          if (ImGui::MenuItem(fs::relative(file).c_str())) {
             spdlog::debug("Pressed recent file: '{}'", file);
           }
         }
