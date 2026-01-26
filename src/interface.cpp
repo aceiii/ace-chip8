@@ -708,6 +708,7 @@ void Interface::render_main_menu() {
         for (auto &file : settings.recent_files) {
           if (ImGui::MenuItem(fs::relative(file).c_str())) {
             spdlog::debug("Pressed recent file: '{}'", file);
+            load_rom(file);
           }
         }
         ImGui::Separator();
@@ -828,10 +829,17 @@ void Interface::open_load_rom_dialog() {
 }
 
 void Interface::load_rom(const std::string &filename) {
-  spdlog::debug("Loading rom: {}", filename);
+  auto rom_path = fs::absolute(filename);
+  const std::string ext = rom_path.extension().string();
 
-  rom_loaded = true;
-  fs::path rom_path = filename;
+  spdlog::debug("Loading rom: '{}'", rom_path.string());
+
+  if (!fs::is_regular_file(rom_path) || !(ext == ".ch8" || ext == ".c8")) {
+    spdlog::debug("File does not exist or is not chip8 rom: '{}'", rom_path.string());
+    config.settings.remove_recent_file(rom_path.string());
+    return;
+  }
+
   set_window_title(rom_path.filename());
 
   std::ifstream in(filename, std::ios::binary | std::ifstream::ate);
@@ -852,8 +860,8 @@ void Interface::load_rom(const std::string &filename) {
     interpreter->play();
   }
 
-  auto abs_path = fs::absolute(filename).string();
-  config.settings.add_recent_file(abs_path);
+  rom_loaded = true;
+  config.settings.add_recent_file(rom_path.string());
 }
 
 void Interface::set_window_title(const std::string &title) {

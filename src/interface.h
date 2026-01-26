@@ -80,6 +80,10 @@ struct interface_settings {
       recent_files.pop_front();
     }
   }
+
+  void remove_recent_file(std::string_view file) {
+    std::erase(recent_files, std::string(file));
+  }
 };
 
 class Interface {
