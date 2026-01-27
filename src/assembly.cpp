@@ -79,7 +79,7 @@ void AssemblyViewer::draw() {
         ImGui::SameLine();
 
         uint16_t instr = (hi << 8) | lo;
-        ImGui::Text(disassembled_instruction(instr).c_str());
+        ImGui::Text("%s", disassembled_instruction(instr).c_str());
 
         if (is_greyed_out || is_current_line) {
           ImGui::PopStyleColor();
