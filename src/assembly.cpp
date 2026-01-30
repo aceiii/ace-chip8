@@ -1,6 +1,6 @@
 #include "assembly.h"
 
-#include <cstdint>
+#include <format>
 #include <imgui.h>
 #include <spdlog/spdlog.h>
 
@@ -114,7 +114,7 @@ std::string AssemblyViewer::disassembled_instruction(uint16_t instr) const {
       return "RET";
     } else if (((n >> 4) & 0xf) == 0xc) {
       // Super Chip-48
-      return fmt::format("SCD {:x}h", n);
+      return std::format("SCD {:x}h", n);
     } else if (nn == 0xfb) {
       // Super Chip-48
       return "SCR";
@@ -131,68 +131,68 @@ std::string AssemblyViewer::disassembled_instruction(uint16_t instr) const {
       // Super Chip-48
       return "HIGH";
     } else {
-      return fmt::format("SYS {:03x}h", nnn);
+      return std::format("SYS {:03x}h", nnn);
     }
   case 0x1:
-    return fmt::format("JP {:03x}h", nnn);
+    return std::format("JP {:03x}h", nnn);
   case 0x2:
-    return fmt::format("CALL {:03x}h", nnn);
+    return std::format("CALL {:03x}h", nnn);
   case 0x3:
-    return fmt::format("SE V{:x}, {:02x}h", x, nn);
+    return std::format("SE V{:x}, {:02x}h", x, nn);
   case 0x4:
-    return fmt::format("SNE V{:x}, {:02x}h", x, nn);
+    return std::format("SNE V{:x}, {:02x}h", x, nn);
   case 0x5:
     if (n == 0) {
-      return fmt::format("SE V{:x}, V{:x}", x, y);
+      return std::format("SE V{:x}, V{:x}", x, y);
     }
     break;
   case 0x6:
-    return fmt::format("LD V{:x}, {:02x}h", x, nn);
+    return std::format("LD V{:x}, {:02x}h", x, nn);
   case 0x7:
-    return fmt::format("ADD V{:x}, {:02x}h", x, nn);
+    return std::format("ADD V{:x}, {:02x}h", x, nn);
   case 0x8:
     switch (n) {
     case 0:
-      return fmt::format("LD V{:x} V{:x}", x, y);
+      return std::format("LD V{:x} V{:x}", x, y);
     case 1:
-      return fmt::format("OR V{:x}, V{:x}", x, y);
+      return std::format("OR V{:x}, V{:x}", x, y);
     case 2:
-      return fmt::format("AND V{:x}, V{:x}", x, y);
+      return std::format("AND V{:x}, V{:x}", x, y);
     case 3:
-      return fmt::format("XOR V{:x}, V{:x}", x, y);
+      return std::format("XOR V{:x}, V{:x}", x, y);
     case 4:
-      return fmt::format("ADD V{:x}, V{:x}", x, y);
+      return std::format("ADD V{:x}, V{:x}", x, y);
     case 5:
-      return fmt::format("SUB V{:x}, V{:x}", x, y);
+      return std::format("SUB V{:x}, V{:x}", x, y);
     case 6:
-      return fmt::format("SHR V{:x}, V{:x}", x, y);
+      return std::format("SHR V{:x}, V{:x}", x, y);
     case 7:
-      return fmt::format("SUBN V{:x}, V{:x}", x, y);
+      return std::format("SUBN V{:x}, V{:x}", x, y);
     case 0xe:
-      return fmt::format("SHL V{:x}, V{:x}", x, y);
+      return std::format("SHL V{:x}, V{:x}", x, y);
     default:
       break;
     }
     break;
   case 0x9:
     if (n == 0) {
-      return fmt::format("SNE V{:x}, V{:x}", x, y);
+      return std::format("SNE V{:x}, V{:x}", x, y);
     }
     break;
   case 0xa:
-    return fmt::format("LD I, {:03x}h", nnn);
+    return std::format("LD I, {:03x}h", nnn);
   case 0xb:
-    return fmt::format("JP V0, {:03x}h", nnn);
+    return std::format("JP V0, {:03x}h", nnn);
   case 0xc:
-    return fmt::format("RND V{:x}, {:02x}h", x, nn);
+    return std::format("RND V{:x}, {:02x}h", x, nn);
   case 0xd:
-    return fmt::format("DRW V{:x}, V{:x}, {:x}h", x, y, n);
+    return std::format("DRW V{:x}, V{:x}, {:x}h", x, y, n);
   case 0xe:
     switch (nn) {
     case 0x9e:
-      return fmt::format("SKP V{:x}", x);
+      return std::format("SKP V{:x}", x);
     case 0xa1:
-      return fmt::format("SKNP V{:x}", x);
+      return std::format("SKNP V{:x}", x);
     default:
       break;
     }
@@ -200,30 +200,30 @@ std::string AssemblyViewer::disassembled_instruction(uint16_t instr) const {
   case 0xf:
     switch (nn) {
     case 0x07:
-      return fmt::format("LD V{:x}, DT", x);
+      return std::format("LD V{:x}, DT", x);
     case 0x0a:
-      return fmt::format("LD V{:x}, K", x);
+      return std::format("LD V{:x}, K", x);
     case 0x15:
-      return fmt::format("LD DT, V{:x}", x);
+      return std::format("LD DT, V{:x}", x);
     case 0x18:
-      return fmt::format("LD ST, V{:x}", x);
+      return std::format("LD ST, V{:x}", x);
     case 0x1e:
-      return fmt::format("ADD I, V{:x}", x);
+      return std::format("ADD I, V{:x}", x);
     case 0x29:
-      return fmt::format("LD F, V{:x}", x);
+      return std::format("LD F, V{:x}", x);
     case 0x33:
-      return fmt::format("LD B, V{:x}", x);
+      return std::format("LD B, V{:x}", x);
     case 0x55:
-      return fmt::format("LD [I], V{:x}", x);
+      return std::format("LD [I], V{:x}", x);
     case 0x65:
-      return fmt::format("LD V{:x}, [I]", x);
+      return std::format("LD V{:x}, [I]", x);
     // Super Chip-48 Instructions
     case 0x30:
-      return fmt::format("LD HF, V{:x}", x);
+      return std::format("LD HF, V{:x}", x);
     case 0x75:
-      return fmt::format("LD R, V{:x}", x);
+      return std::format("LD R, V{:x}", x);
     case 0x85:
-      return fmt::format("LD V{:x}, R", x);
+      return std::format("LD V{:x}, R", x);
     default:
       break;
     }

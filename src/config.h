@@ -2,9 +2,8 @@
 
 #include <fstream>
 #include <functional>
-#include <string>
 #include <iostream>
-#include <system_error>
+#include <string>
 #include <tl/expected.hpp>
 #include <toml++/toml.hpp>
 
@@ -22,12 +21,12 @@ public:
     return {};
   }
 
-  tl::expected<void, std::string> save(const std::string& filename) const {
+  [[nodiscard]] tl::expected<void, std::string> save(const std::string& filename) const {
     try {
       std::ofstream file(filename);
       file << toml::toml_formatter { table };
       file.close();
-    } catch (std::exception e) {
+    } catch (std::exception &e) {
       return tl::unexpected(e.what());
     }
     return {};
@@ -36,7 +35,7 @@ public:
   tl::expected<void, std::string> serialize(std::function<void(const Settings &settings, toml::table&)> serialize_func) {
     try {
       serialize_func(settings, table);
-    } catch (std::exception e) {
+    } catch (std::exception &e) {
       return tl::unexpected(e.what());
     }
     return {};
@@ -45,7 +44,7 @@ public:
   tl::expected<void, std::string> deserialize(std::function<void(const toml::table&, Settings &settings)> deserialize_func) {
     try {
       deserialize_func(table, settings);
-    } catch (std::exception e) {
+    } catch (std::exception &e) {
       return tl::unexpected(e.what());
     }
     return {};

@@ -2,6 +2,7 @@
 #include "interpreter.h"
 #include "registers.h"
 
+#include <format>
 #include <argparse/argparse.hpp>
 #include <magic_enum.hpp>
 #include <spdlog/spdlog.h>
@@ -35,7 +36,7 @@ auto main(int argc, char *argv[]) -> int {
 
   const std::string level = program.get("--log-level");
   if (!set_logging_level(level)) {
-    std::cerr << fmt::format("Invalid argument \"{}\" - allowed options: "
+    std::cerr << std::format("Invalid argument \"{}\" - allowed options: "
                              "{{trace, debug, info, warn, err, critical, off}}",
                              level)
               << std::endl;

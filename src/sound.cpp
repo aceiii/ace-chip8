@@ -1,32 +1,30 @@
 #include "sound.h"
 
+#include <algorithm>
+#include <array>
+#include <filesystem>
 #include <functional>
-#include <spdlog/spdlog.h>
-#include <raylib.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <nfd.h>
-#include <cstring>
-#include <array>
-#include <cmath>
 #include <random>
-#include <algorithm>
-#include <filesystem>
+#include <raylib.h>
+#include <spdlog/spdlog.h>
 #include <utility>
 #include <vector>
 
-static inline float noise(double x) {
+static float noise(double x) {
   static std::random_device rd;
   static std::mt19937 gen(rd());
   static std::uniform_real_distribution<> dist(-1.0f, 1.0f);
-  return dist(gen);
+  return static_cast<float>(dist(gen));
 }
 
-static inline float sine_wave(double x) {
-  return std::sin(2 * PI * x);
+static float sine_wave(double x) {
+  return static_cast<float>(std::sin(2 * PI * x));
 }
 
-static inline float square_wave(double x) {
+static float square_wave(double x) {
   float s = sine_wave(x);
   if (std::abs(s) <= 0.001f) {
     return 0.f;
@@ -34,12 +32,12 @@ static inline float square_wave(double x) {
   return std::abs(s) / s;
 }
 
-static inline float triangle_wave(double x) {
-  return std::abs(fmod(x, 1.0f) - 0.5f) * 4 - 1;
+static float triangle_wave(double x) {
+  return static_cast<float>(std::abs(fmod(x, 1.0f) - 0.5f) * 4 - 1);
 }
 
-static inline float sawtooth_wave(double x) {
-  return std::abs(fmod(x, 1.0f)) * 2 - 1;
+static float sawtooth_wave(double x) {
+  return static_cast<float>(std::abs(fmod(x, 1.0f)) * 2 - 1);
 }
 
 std::vector<std::pair<const char*, std::function<float(double)>>> wave_funcs = {
@@ -63,7 +61,7 @@ void WaveGeneratorSource::render() {
     }
     ImGui::EndCombo();
   }
-  ImGui::PlotLines("Sound", samples.data(), samples.size(), 0, nullptr, -1.2f, 1.2f, ImVec2(0, 50.0f));
+  ImGui::PlotLines("Sound", samples.data(), static_cast<int>(samples.size()), 0, nullptr, -1.2f, 1.2f, ImVec2(0, 50.0f));
   ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f");
   ImGui::SliderFloat("Offset", &offset, 0.0f, 1.0f, "%0.2f");
   if (ImGui::Button("+0.0")) {
@@ -167,7 +165,7 @@ void WaveFileSource::render() {
   ImGui::Text("%s", wav_filename.c_str());
 
   ImGui::PlotHistogram("Waveform", wav_samples, frame_count, 0, nullptr, wav_min, wav_max, ImVec2(0, 80.0f));
-  ImGui::PlotLines("Samples", samples.data(), samples.size(), 0, nullptr, -1.0f, 1.0f, ImVec2(0, 50.0f));
+  ImGui::PlotLines("Samples", samples.data(), static_cast<int>(samples.size()), 0, nullptr, -1.0f, 1.0f, ImVec2(0, 50.0f));
   ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f");
   if (ImGui::Button("0%")) {
     volume = 0.0f;
@@ -252,7 +250,7 @@ void WaveFileSource::load_wave(const char *filename) {
   Wave wave = LoadWave(filename);
   WaveFormat(&wave, kAudioSampleRate, 16, 1);
   wav_samples = LoadWaveSamples(wave);
-  frame_count = wave.frameCount;
+  frame_count = static_cast<int>(wave.frameCount);
   UnloadWave(wave);
 
   std::filesystem::path path(filename);
@@ -289,7 +287,7 @@ void SoundManager::cleanup() {
 }
 
 void SoundManager::render() {
-  ImGui::PlotLines("Sound", samples.data(), samples.size(), 0, nullptr, -1.5f, 1.5f, ImVec2(0, 80.0f));
+  ImGui::PlotLines("Sound", samples.data(), static_cast<int>(samples.size()), 0, nullptr, -1.5f, 1.5f, ImVec2(0, 80.0f));
 
   int sid_to_remove = -1;
   for (int sid = 0; sid < sources.size(); sid += 1) {
@@ -334,9 +332,9 @@ void SoundManager::update(bool play_sound) {
     buffer[i] = static_cast<short>(((1 << 15) - 1) * samples[i]);
   }
 
-  time = fmod(time + (1.0 / kAudioSampleRate) * buffer.size(), 1.0);
+  time = fmod(time + (1.0 / kAudioSampleRate) * static_cast<double>(buffer.size()), 1.0);
 
-  UpdateAudioStream(stream, buffer.data(), buffer.size());
+  UpdateAudioStream(stream, buffer.data(), static_cast<int>(buffer.size()));
 }
 
 void SoundManager::add_source(std::unique_ptr<SoundSource> source) {
@@ -347,5 +345,5 @@ void SoundManager::add_source(std::unique_ptr<SoundSource> source) {
 }
 
 void SoundManager::remove_source_at(size_t index) {
-  sources.erase(sources.begin() + index);
+  sources.erase(sources.begin() + static_cast<int>(index));
 }

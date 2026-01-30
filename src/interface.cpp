@@ -225,9 +225,7 @@ void Interface::initialize() {
       [=, this](const spdlog::details::log_msg &msg) {
         spdlog::memory_buf_t formatted;
         formatter->format(msg, formatted);
-
-        std::string formatted_string(formatted.begin(), formatted.size());
-        app_log.add_log(formatted_string);
+        app_log.add_log(formatted);
       });
 
   std::vector<spdlog::sink_ptr> sinks;
@@ -644,7 +642,7 @@ bool Interface::update() {
     if (ImGui::Begin("Timer", &settings.show_timers)) {
       ImGui::PushID("dt");
       float delay_progress = static_cast<float>(regs->dt) / 255.0;
-      ImGui::ProgressBar(delay_progress, ImVec2(0.f, 0.f), fmt::format("{} / 255", regs->dt).c_str());
+      ImGui::ProgressBar(delay_progress, ImVec2(0.f, 0.f), std::format("{} / 255", regs->dt).c_str());
       ImGui::SameLine();
       ImGui::Text("Delay (DT)");
       if (ImGui::Button("Set 0")) {
@@ -664,7 +662,7 @@ bool Interface::update() {
 
       ImGui::PushID("st");
       float sound_progress = static_cast<float>(regs->st) / 255.0;
-      ImGui::ProgressBar(sound_progress, ImVec2(0.f, 0.f), fmt::format("{} / 255", regs->st).c_str());
+      ImGui::ProgressBar(sound_progress, ImVec2(0.f, 0.f), std::format("{} / 255", regs->st).c_str());
       ImGui::SameLine();
       ImGui::Text("Sound (ST)");
       if (ImGui::Button("Set 0")) {
@@ -868,6 +866,6 @@ void Interface::set_window_title(const std::string &title) {
   if (title.empty()) {
     SetWindowTitle(kWindowTitle);
   } else {
-    SetWindowTitle(fmt::format("{} - {}", kWindowTitle, title).c_str());
+    SetWindowTitle(std::format("{} - {}", kWindowTitle, title).c_str());
   }
 }

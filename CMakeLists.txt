@@ -24,8 +24,9 @@ set(SOURCE_FILES
     src/toml_impl.cpp
 )
 
-set(EXPECTED_BUILD_TESTS OFF)
-set(ARGPARSE_BUILD_TESTS OFF)
+set(EXPECTED_BUILD_TESTS OFF CACHE BOOL "tl::expected tests" FORCE)
+set(ARGPARSE_BUILD_TESTS OFF CACHE BOOL "argparse tsts" FORCE)
+set(SPDLOG_USE_STD_FORMAT ON CACHE BOOL "spdlog use std::format" FORCE)
 
 include(cmake/raylib.cmake)
 include(cmake/rlimgui.cmake)
