@@ -1,11 +1,13 @@
+#include "args.hpp"
 #include "interface.h"
 #include "interpreter.h"
 #include "registers.h"
 
 #include <format>
-#include <argparse/argparse.hpp>
 #include <magic_enum.hpp>
 #include <spdlog/spdlog.h>
+
+using namespace std::string_literals;
 
 static bool set_logging_level(const std::string &level_name) {
   auto level = magic_enum::enum_cast<spdlog::level::level_enum>(level_name);
@@ -17,32 +19,13 @@ static bool set_logging_level(const std::string &level_name) {
 }
 
 auto main(int argc, char *argv[]) -> int {
-  spdlog::set_level(spdlog::level::info);
-
-  argparse::ArgumentParser program("ace-chip8", "0.0.1");
-
-  program.add_argument("--log-level")
-      .help("Set the verbosity for logging")
-      .default_value(std::string("info"))
-      .nargs(1);
-
-  try {
-    program.parse_args(argc, argv);
-  } catch (const std::exception &err) {
-    std::cerr << err.what() << std::endl;
-    std::cerr << program;
-    return 1;
+  const auto &args = Args::Parse(argc, argv);
+  if (!args.has_value()) {
+    std::cerr << args.error();
+    exit(1);
   }
 
-  const std::string level = program.get("--log-level");
-  if (!set_logging_level(level)) {
-    std::cerr << std::format("Invalid argument \"{}\" - allowed options: "
-                             "{{trace, debug, info, warn, err, critical, off}}",
-                             level)
-              << std::endl;
-    std::cerr << program;
-    return 1;
-  }
+  set_logging_level(args->log_level);
 
   auto regs = std::make_shared<registers>();
 

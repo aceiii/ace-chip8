@@ -5,13 +5,14 @@ project(ace-chip8 VERSION 0.0.1 LANGUAGES CXX)
 set(EXE_NAME ace-chip8)
 
 set(CMAKE_CXX_STANDARD 23)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS on)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_definitions(TOML_EXCEPTIONS=0)
 
 set(SOURCE_FILES
     src/main.cpp
+    src/args.cpp
     src/interpreter.cpp
     src/interface.cpp
     src/timer.cpp
